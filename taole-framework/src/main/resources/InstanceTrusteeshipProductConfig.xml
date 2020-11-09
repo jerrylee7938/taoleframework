@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProductConfig desc="实例托管产品配置">
+    <Enabled>true</Enabled>
+    <Product name="Spring" weight="1" enabled="false">
+        <Environment type="web" strategy="clazz">
+            <context name="com.wdb.spring.utils.SpringContext" isInstantiation="false"
+                     excute="getContext">
+                <args name="java.lang.String"/>
+            </context>
+        </Environment>
+    </Product>
+    <Product name="Spring" weight="2" enabled="false">
+        <Environment type="main" strategy="annotation" desc="如果strategy是annotation的形式，那么需缓存实现方提供需要注册的bean供调用方进行注册"/>
+    </Product>
+
+</ProductConfig>

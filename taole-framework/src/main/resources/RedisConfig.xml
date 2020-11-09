@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RedCachedConfig>
+    <Enabled>true</Enabled>
+    <Config>
+        <property name="host">118.190.63.228</property>
+        <property name="port">6379</property>
+        <property name="maxActive" desc="控制一个pool可分配多少个jedis实例，通过pool.getResource()来获取；如果赋值为-1，则表示不限制；如果pool已经分配了maxActive个jedis实例，则此时pool的状态为exhausted(耗尽)。">500</property>
+        <property name="maxIdle" desc="控制一个pool最多有多少个状态为idle(空闲的)的jedis实例。">5</property>
+        <property name="maxWait" desc="表示当borrow(引入)一个jedis实例时，最大的等待时间，如果超过等待时间，则直接抛出JedisConnectionException；">100000</property>
+        <!--<property name="password">wdb123abc!@#</property> -->
+        <property name="password">wdb123abc!@#</property>
+    </Config>
+</RedCachedConfig>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BizCacheNodeConfig>
+    <Enabled>true</Enabled>
+    <Domain desc="domain这块配置只提供一种标准，对管理、使用限制低">
+        <Cache name="EhCache" enabled="false" weight="2">
+            <clazz name="com.wdb.cache.DomainCacheMamangerFactory">
+                <excutetype desc="默认domain">default</excutetype>
+                <permission desc="默认curd">default</permission>
+            </clazz>
+        </Cache>
+        <Cache name="MapCache" enabled="true" weight="1"/>
+        <Cache name="MemCache" enabled="false" weight="1"/>
+        <Cache name="RedisCache" enabled="false" weight="1"/>
+    </Domain>
+    <Biz>
+        <Cache name="EhCache" enabled="false" weight="1" packageScan="com.wdb.user" scope="Sington">
+            <package name="biz" excutetype="cold" permission="c" scope="Multiton"/>
+            <package name="biz2">
+                <clazz name="UserManager">
+                    <excutetype desc="操作类型，热数据、冷数据、锁,如果被管理者限制，会存储中加入黑名单，使其不能使用某种类型，重启无作用">lock,hot</excutetype>
+                    <permission desc="执行权限，如果被管理者限制，会存储中加入黑名单，使其不能使用某种类型，重启无作用">curd</permission>
+                </clazz>
+            </package>
+            <clazz name="UserPorManager" excutetype="hot" permission="crd"/>
+        </Cache>
+        <Cache name="MapCache" enabled="false" weight="1" scope="default">
+            <package name="com.wdb.loan" excutetype="cold" permission="d"/>
+        </Cache>
+        <Cache name="MemCache" enabled="true" weight="1" excutetype="hot" permission="crd" packageScan="com.wdb.credit"
+               scope="Sington">
+            <clazz name="CoustomInfoService"/>
+        </Cache>
+        <Cache name="RedisCache" enabled="true" weight="1">
+            <clazz name="com.wdb.credit.CompanInfoManager" scope="Multiton" isControlled="false">
+                <excutetype desc="默认注入优先级顺序为cold,hot,lock,冷热数据划分依据，单位时间内，数据的变化率">lock,hot</excutetype>
+                <permission>curd</permission>
+            </clazz>
+        </Cache>
+        <Cache name="oterCache" enabled="false" weight="1"/>
+    </Biz>
+</BizCacheNodeConfig>

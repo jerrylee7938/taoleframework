@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProductConfig desc="存储产品配置">
+    <Enabled>true</Enabled>
+    <Product name="DB" weight="1" enabled="false">
+        <Node type="mysql" weight="1" enabled="true">
+            <url>jdbc:mysql://118.190.63.228:3306/credit?useUnicode=true&amp;characterEncoding=utf-8</url>
+            <user>jd1test_root</user>
+            <password>wdbDBtest!@#</password>
+            <db_version>5.1</db_version>
+        </Node>
+        <Node type="db2" weight="1" enabled="false">
+            <url>.....</url>
+            <user>....</user>
+            <password>....</password>
+            <db_version>2.1</db_version>
+        </Node>
+    </Product>
+    <Product name="Disk" weight="2" enabled="false">
+        <Node type="local" weight="1" enabled="false">
+            <path>E:\common\server\apache-tomcat-p2p-web\conf</path>
+        </Node>
+        <Node type="Remote" weight="1" enabled="false" kind="ftp" >
+            <url>http://taole.remoteDisk.Server</url>
+            <folder></folder>
+            <user></user>
+            <password></password>
+        </Node>
+    </Product>
+</ProductConfig>
