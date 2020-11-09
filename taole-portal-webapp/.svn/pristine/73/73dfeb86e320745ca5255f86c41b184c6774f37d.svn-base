@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>用户注册</title>
+<link type="text/css" href="../styles/css.css" rel="stylesheet" />
+<link type="text/css" href="../styles/login.css" rel="stylesheet" />
+</head>
+
+<body>
+<div class="box">
+<div class="kv_logo_box">
+<iframe src="top.html" width="900 " height="80" frameborder="0" scrolling="no"></iframe>
+</div>
+<div class="mian">
+<div class="tab_tit">
+	<div class="tab_tit_1">用户注册</div>
+</div>
+<div class="main_login_2">
+<div class="kv_cg">感谢您注册，我们已将激活码发送到您的注册邮箱ahu402@qq.com，请在24小时内完成帐号激活流程！</div>
+<div class="kv_txt_2"> <br/><br/>
+
+
+
+
+<div class="kv_btn_1"><a href="jh_success.html">立即登录邮箱</a></div>
+  <div class="c-b"></div>
+</div>
+
+
+<div class="footer_box"><iframe src="footer.html" width="900 " height="60" frameborder="0" scrolling="no"></iframe>
+</div>
+</div>
+     
+
+
+</div>
+
+</body>
+</html>

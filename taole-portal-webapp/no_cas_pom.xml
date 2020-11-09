@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.taole.framework</groupId>
+	<artifactId>taole-portal-webapp</artifactId>
+	<packaging>war</packaging>
+	<version>1.0</version>
+	<name>taole-portal-webapp Webapp</name>
+	<url>http://www.sclat.cn</url>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<m2eclipse.wtp.contextRoot>portal-webapp</m2eclipse.wtp.contextRoot>
+	</properties>
+	<profiles>
+		<profile>
+			<id>dev</id>
+			<properties>
+				<deploy.url>http://192.168.1.253:8080/manager/text</deploy.url>
+				<deploy.username>tomcat</deploy.username>
+				<deploy.password>tomcat</deploy.password>
+			</properties>
+		</profile>
+		<profile>
+			<id>qa</id>
+			<properties>
+				<deploy.url>http://test.yishengjia1.com:8080/manager/text</deploy.url>
+				<deploy.username>disuser</deploy.username>
+				<deploy.password>J7@DP10#$18</deploy.password>
+			</properties>
+		</profile>
+	</profiles>
+	<build>
+		<finalName>taole-portal-webapp</finalName>
+		<plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-eclipse-plugin</artifactId>
+                <version>2.8</version>
+                <configuration>
+                    <downloadSources>true</downloadSources>
+                </configuration>
+            </plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>tomcat-maven-plugin</artifactId>
+				<configuration>
+					<url>${deploy.url}</url>
+					<username>${deploy.username}</username>
+					<password>${deploy.password}</password>
+				</configuration>
+			</plugin>
+        </plugins>
+	</build>
+	<dependencies>
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>servlet-api</artifactId>
+			<version>2.5</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax.servlet.jsp</groupId>
+			<artifactId>jsp-api</artifactId>
+			<version>2.1</version>
+			<scope>provided</scope>
+		</dependency>
+	</dependencies>
+	<distributionManagement>
+        <!-- <snapshotRepository>
+            <id>taole</id>
+            <name>Taole Maven Repository</name>
+            <url>http://122.226.100.59:8081/nexus/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>taole</id>
+            <name>Taole Maven Repository</name>
+            <url>http://122.226.100.59:8081/nexus/content/repositories/releases</url>
+        </repository> -->
+        
+        <snapshotRepository>
+			<id>doctorplus1-snapshots</id>
+			<name>yishengjia Maven Repository</name>
+			<url>http://nexus.yishengjia1.cn/nexus/content/repositories/snapshots/</url>
+		</snapshotRepository>
+		<repository>
+			<id>doctorplus1-releases</id>
+			<name>yishengjia Maven Repository</name>
+			<url>http://nexus.yishengjia1.cn/nexus/content/repositories/releases</url>
+		</repository>
+    </distributionManagement>
+    <scm>
+        <developerConnection>scm:svn://svn.yishengjia1.cn/repos/doctorplus1/2-SRC/01-Trunk/taole-portal-webapp
+        </developerConnection>
+        <connection>scm:svn://svn.yishengjia1.cn/repos/doctorplus1/2-SRC/01-Trunk/taole-portal-webapp</connection>
+    </scm>
+</project>

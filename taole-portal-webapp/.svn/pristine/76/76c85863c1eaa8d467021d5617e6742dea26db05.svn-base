@@ -1,0 +1,7 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%
+String $ctx = "http://"+request.getServerName()+":"+request.getServerPort()+request.getContextPath();//String $ctx ="http://localhost:8080/portal";
+//js公共模组的访问地址（jsp文件使用）
+String $commonRoot = "http://admin.99melove.com/common";
+String $systemName = "Portal系统";
+%>

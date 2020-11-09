@@ -1,0 +1,19 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%
+	String $userName=(String)session.getAttribute("realname");
+	String $userId =(String)session.getAttribute("usercode");
+%>
+
+<script type="text/javascript">
+	var userName =window.userName ='<%=$userName%>';
+	var userId =window.userId='<%=$userId%>';
+	if(userId == null || userId == 'null' || userName == null || userName == 'null'){
+		userId = window.sessionStorage.getItem('userId');
+		userName = window.sessionStorage.getItem('realName');//账号
+	}
+	
+	if(userId == null || userId == 'null' || userName == null || userName == 'null'){
+		window.open('http://<%=request.getServerName()%>:<%=request.getServerPort()%><%=request.getContextPath()%>'+"/logout_center.jsp","_parent");
+	}
+</script>

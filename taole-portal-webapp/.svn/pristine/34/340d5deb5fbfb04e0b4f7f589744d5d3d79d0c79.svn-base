@@ -1,0 +1,266 @@
+[
+    {
+        "id": "SYS_ROOT",
+        "name": "系统导航菜单",
+        "enable": true,
+        "children": [
+            {
+                "id": "94861f8834cb444e910e42fb0817fdc1",
+                "name": "系统管理",
+                "enable": true,
+                "children": [
+                	{
+			            "id": "23085e0ece32439690124838d11e82ea",
+			            "name": "我的桌面设置",
+			            "enable": true,
+			            "children": [],
+			            "leaf": true,
+			            "attributes": {},
+			            "action":"app/user/desktop/desktopDeploy.jsp",
+			            "entityName": "tk.Menu"
+			        },
+			        {
+			            "id": "f53c8d9a87104996a9a066a493486919",
+			            "name": "我的消息设置",
+			            "enable": true,
+			            "children": [],
+			            "leaf": true,
+			            "attributes": {},
+			            "action":"app/user/notice/noticeDeploy.jsp",
+			            "entityName": "tk.Menu"
+			        },
+                    {
+                        "id": "bbb704b446c94397b1d6c111f60883c4",
+                        "name": "运维管理",
+                        "enable": true,
+                        "children": [
+                            {
+                                "id": "523b3eefdedb41b4bd541a0d5e42f5d6",
+                                "name": "用户管理",
+                                "enable": true,
+                                "action": "portal/User/userInfoManager.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "49826d304e714dd7a67ca7133b9532fc",
+                                "name": "角色管理",
+                                "enable": true,
+                                "action": "portal/User/roleManager.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "6c2c82c776ef4dbeaee8d698651f6bea",
+                                "name": "分组管理",
+                                "enable": true,
+                                "action": "portal/User/groupManager.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "48157cdb08cb42fab5b637ff659215bc",
+                                "name": "日志管理",
+                                "enable": true,
+                                "action": "portal/User/logManager.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "79789f5d14894e90877c37debe52c3aa",
+                                "name": "权限管理",
+                                "enable": true,
+                                "action": "portal/User/permissionManager.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "c79bd17e975c4dde9157ac621fb559a9",
+                                "name": "令牌管理",
+                                "enable": true,
+                                "action": "portal/User/tokenManager.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "97e4d93bf85f444aa50eb386ded40fd3",
+                                "name": "组织管理",
+                                "enable": true,
+                                "action": "app/user/organization/organizationManager.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "97e4d93bf85f444aa502db386ded40fd3",
+                                "name": "数据权限管理",
+                                "enable": true,
+                                "action": "app/dataPrivilege/dataPrivilegeManager/dataPrivilege.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            }
+                        ],
+                        "leaf": false,
+                        "attributes": {},
+                        "entityName": "tk.Menu"
+                    },
+                    {
+                        "id": "13290ebe665740bb8dfeb4809d760dee",
+                        "name": "配置管理",
+                        "enable": true,
+                        "children": [
+                            {
+                                "id": "dcf1fcf75f4748ea8c349125c115e831",
+                                "name": "应用管理",
+                                "enable": true,
+                                "action": "portal/User/appManager.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "1d38079482a2429eb2772354ad414333",
+                                "name": "菜单管理",
+                                "enable": true,
+                                "action": "portal/User/sysMenuManager.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "3bbb29fd388b404d8df85285de60c4d6",
+                                "name": "Portal字典管理",
+                                "enable": true,
+                                "action": "common/dictManager.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "ac5c3bc175b04e888a6c37dd5fece586",
+                                "name": "CMIS字典管理",
+                                "enable": true,
+                                "action": "http://localhost:8080/cmis/common/dictManager.jsp",
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "8ed923cf215045fe9a13e7f1f2eb54fa",
+                                "name": "桌面设置管理",
+                                "enable": true,
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "action":"app/user/desktop/desktopManager.jsp",
+                                "entityName": "tk.Menu"
+                            },
+                            {
+                                "id": "50b52ec2bfd3471f806197d9b1aa90fb",
+                                "name": "消息设置管理",
+                                "enable": true,
+                                "children": [],
+                                "leaf": true,
+                                "attributes": {},
+                                "action":"app/user/notice/noticeManager.jsp",
+                                "entityName": "tk.Menu"
+                            }
+                        ],
+                        "leaf": false,
+                        "attributes": {},
+                        "entityName": "tk.Menu"
+                    },
+                     {
+                        "id": "appmanager",
+                        "name": "APP管理",
+                        "enable": true,
+                        "children": [],
+                        "leaf": true,
+                        "attributes": {},
+                         "action":"app/appManager/appVer/appVer.jsp",
+                        "entityName": "tk.Menu"
+                    },
+                     {
+                        "id": "imeimanager",
+                        "name": "IMEI管理",
+                        "enable": true,
+                        "children": [],
+                        "leaf": true,
+                        "attributes": {},
+                         "action":"app/appManager/imei/imei.jsp",
+                        "entityName": "tk.Menu"
+                    },
+                     {
+                        "id": "channelguanli",
+                        "name": "渠道管理",
+                        "enable": true,
+                        "children": [],
+                        "leaf": true,
+                        "attributes": {},
+                         "action":"app/marketing/ChannelList.jsp",
+                        "entityName": "tk.Menu"
+                    }
+                ],
+                "leaf": false,
+                "attributes": {},
+                "entityName": "tk.Menu"
+            },{
+            	 "id": "1",
+                "name": "项目管理",
+                "enable": true,
+                "leaf": false,
+                "attributes": {},
+                "entityName": "tk.Menu"
+            },{
+            	 "id": "2",
+                "name": "物资管理",
+                "enable": true,
+                "leaf": false,
+                "attributes": {},
+                "entityName": "tk.Menu"
+            },{
+            	 "id": "3",
+                "name": "文档管理",
+                "enable": true,
+                "leaf": false,
+                "attributes": {},
+                "entityName": "tk.Menu",
+                "children": [
+                    {
+                        "id": "3.1",
+                        "name": "项目文档管理",
+                        "enable": true,
+                        "action": "http://localhost:8080/taole-cmis-webapp/app/prjms/projectFile/projectFile.jsp",
+                        "children": [],
+                        "leaf": true,
+                        "attributes": {},
+                        "entityName": "tk.Menu"
+                    }
+                ]
+            }
+        ],
+        "leaf": false,
+        "attributes": {},
+        "expanded": true,
+        "entityName": "tk.Menu"
+    }
+]

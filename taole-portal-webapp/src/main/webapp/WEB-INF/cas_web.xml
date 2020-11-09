@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee   http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+	<display-name>taole portal 1.0-SNAPSHOT</display-name>
+	<context-param>
+		<param-name>defaultEncoding</param-name>
+		<param-value>UTF-8</param-value>
+	</context-param>
+	
+	
+<!-- ======================CAS ======================-->
+    <context-param>  
+      <param-name>casServerLogoutUrl</param-name>  
+      <param-value>https://cas.51taole.cn:8443/cas/logout</param-value>  
+    </context-param>
+    <context-param>  
+      <param-name>casClientLoginUrl</param-name>  
+      <param-value>http://portal.51taole.cn/portal/index.jsp</param-value>  
+    </context-param>  
+	<listener>
+		<listener-class>org.jasig.cas.client.session.SingleSignOutHttpSessionListener</listener-class>
+	</listener>
+	<filter>
+		<filter-name>CAS Single Sign Out Filter</filter-name>
+		<filter-class>org.jasig.cas.client.session.SingleSignOutFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>CAS Single Sign Out Filter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>	
+
+	 <filter>
+		<filter-name>CAS Authentication Filter</filter-name>
+		<filter-class>org.jasig.cas.client.authentication.AuthenticationFilterWithExcludeUrl</filter-class>
+		<init-param>
+			<param-name>casServerLoginUrl</param-name>
+			<param-value>https://cas.51taole.cn:8443/cas/login</param-value>
+		</init-param>
+		<init-param>
+              <param-name>excludePaths</param-name>
+              <param-value>
+                   us.Resource/collection/getUserAuthUrl,
+                   us.Resource/collection/getSysAuthUrl,
+                   us.Group/collection/query,
+                   us.User/collection/getAllUsers,
+			       us.Resource/collection/getAuthUrl,
+			       us.User/collection/isWhiteUser,
+			       us.Organization/collection/queryOrgForBusSys,
+                   getMenu,
+                   register,
+                   regresult.jsp,
+                   code,
+                   reset-password.jsp,
+                   getPassword.jsp,
+                   findpassword,
+                   changepassword,
+                   us.User/collection/active,
+                   top,
+                   header.jsp,
+                   env.js.jsp,
+				   active.jsp,
+                   footer,
+                   .jpg,
+                   .png,
+                   .css,
+                   .jspf,
+                   .gif
+              </param-value>
+        </init-param>
+		<init-param>
+			<param-name>renew</param-name>
+			<param-value>false</param-value>
+		</init-param>
+		<init-param>
+			<param-name>gateway</param-name>
+			<param-value>false</param-value>
+		</init-param>
+		<init-param>
+			<param-name>serverName</param-name>
+			<param-value>http://portal.51taole.cn</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>  
+	        <filter-name>CAS Authentication Filter</filter-name>  
+	        <url-pattern>/*</url-pattern>  
+	</filter-mapping> 
+
+	    <filter>  
+	        <filter-name>CAS Validation Filter</filter-name>  
+	        <filter-class>  
+	            org.jasig.cas.client.validation.Cas20ProxyReceivingTicketValidationFilter</filter-class>  
+	        <init-param>  
+	            <param-name>casServerUrlPrefix</param-name>  
+	            <param-value>https://cas.51taole.cn:8443/cas</param-value>  
+            </init-param>
+            <init-param>  
+	            <param-name>encoding</param-name>  
+	            <param-value>UTF-8</param-value>  
+           </init-param>
+			<init-param>
+				<param-name>useSession</param-name>
+				<param-value>true</param-value>
+			</init-param>
+			<init-param>
+				<param-name>redirectAfterValidation</param-name>
+				<param-value>true</param-value>
+			</init-param>  
+	        <init-param>  
+	            <param-name>serverName</param-name>  
+	            <param-value>http://portal.51taole.cn</param-value>  
+	        </init-param>  
+	    </filter>  
+	    <filter-mapping>  
+	        <filter-name>CAS Validation Filter</filter-name>  
+	        <url-pattern>/*</url-pattern>  
+	    </filter-mapping>  
+
+	    <filter>  
+	        <filter-name>CAS HttpServletRequest Wrapper Filter</filter-name>  
+	        <filter-class>  
+	            org.jasig.cas.client.util.HttpServletRequestWrapperFilter</filter-class>  
+	    </filter>  
+	    <filter-mapping>  
+	        <filter-name>CAS HttpServletRequest Wrapper Filter</filter-name>  
+	        <url-pattern>/*</url-pattern>  
+	    </filter-mapping> 
+
+	    <filter>  
+	        <filter-name>CAS Assertion Thread Local Filter</filter-name>  
+	        <filter-class>org.jasig.cas.client.util.AssertionThreadLocalFilter</filter-class>  
+	    </filter>  
+	    <filter-mapping>  
+	        <filter-name>CAS Assertion Thread Local Filter</filter-name>  
+	        <url-pattern>/*</url-pattern>  
+    </filter-mapping>
+
+	<filter>
+		<filter-name>CommonAuthFilter</filter-name>
+		<filter-class>com.taole.userauthen.CommonAuthFilter
+		</filter-class>
+		<init-param>
+			<param-name>appCode</param-name>
+			<param-value>SYS_APP</param-value>
+		</init-param>
+		<init-param>
+			<param-name>exclude</param-name>
+			<param-value>login,getPortalDesk,getPortalMenu,getSysAuthUrl,getUserAuthUrl,us.Resource/collection/getAuthUrl,us.User/collection/isWhiteUser,noPrivilege.jsp,us.Group/collection/query,us.User/collection/getAllUsers,us.User/collection/active,us.Organization/collection/queryOrgForBusSys,getMenu,reset-password.jsp,getPassword.jsp,findpassword,changepassword,register,regresult.jsp,header.jsp,env.js.jsp,.jpg,.png,.css,.jspf,.gif,code,footer</param-value>
+		</init-param>
+		<init-param>
+			<param-name>portalService</param-name>
+			<param-value>
+			   http://portal.51taole.cn/taole-portal-service
+			</param-value>
+		</init-param>
+		<init-param>
+			<param-name>userIdKey</param-name>
+			<param-value>userId</param-value>
+		</init-param>
+ 
+		<init-param>
+			<param-name>errorReturnType</param-name>
+			<param-value>jumpPage</param-value>
+		</init-param>
+		<init-param>
+			<param-name>loginPage</param-name>
+			<param-value>index.jsp</param-value>
+		</init-param>
+		<init-param>
+			<param-name>errorPage</param-name>
+			<param-value>http://portal.51taole.cn/portal/noPrivilege.jsp
+			</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>
+		<filter-name>CommonAuthFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<session-config>
+		<session-timeout>30</session-timeout>
+	</session-config>
+	
+	<welcome-file-list>
+		<welcome-file>index.jsp</welcome-file>
+	</welcome-file-list>
+</web-app>

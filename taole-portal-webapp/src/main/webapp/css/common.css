@@ -1,0 +1,12 @@
+.rootIcon{  
+		background:url('../image/home.png') no-repeat center center !important;
+	}
+	.unitIcon{
+		background:url('../image/leaf.gif') no-repeat center center !important;
+	}
+	.typeIcon{
+		background:url('../image/folder-open.gif') no-repeat center center !important;
+	}
+	.x-grid-back-gray{
+		background:#E5E5E5 !important;
+	}

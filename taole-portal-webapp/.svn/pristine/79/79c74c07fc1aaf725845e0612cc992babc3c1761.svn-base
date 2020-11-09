@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>用户管理</title>
+<!--  
+    <link type="text/css" href="../styles/css.css" rel="stylesheet" />
+    <link type="text/css" href="../styles/login.css" rel="stylesheet" />
+-->	
+    <link type="text/css" href="<%=request.getContextPath() %>/css/css.css" rel="stylesheet" />
+	<link type="text/css" href="<%=request.getContextPath() %>/css/login.css" rel="stylesheet" />
+
+</head>
+
+<body>
+<div class="box">
+<div class="mian">
+<div class="tab_tit">
+	<div class="tab_tit_1">重置密码</div>
+</div>
+<div class="main_login">
+<table width="390" class="reg_tab" border="0" cellspacing="0">
+
+  <tr>
+    <td width="104" align="right">密码：</td>
+    <td width="282"><input class="kv_inp" type="password" /></td>
+  </tr>
+  <tr>
+    <td align="right">重复密码：</td>
+    <td><input class="kv_inp" type="password" /></td>
+  </tr>
+</table>
+<div class="btn_1_2">
+	<input type="image" src="../images/login/btn3.jpg" />
+</div>
+<div class="f-l" style="padding-top:40px; padding-left:20px;">密码重置成功，继续<a href="login.html" class="kv_link">登录</a></div>
+<div class="c-b"></div>
+</div>
+
+<div class="footer_box"><iframe src="footer.html" width="900 " height="60" frameborder="0" scrolling="no"></iframe>
+</div>
+</div>
+     
+
+
+</div>
+
+</body>
+</html>
