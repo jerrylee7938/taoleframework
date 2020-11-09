@@ -1,0 +1,8 @@
+{
+	result:{
+	total: 2,
+	items:[
+		{id: 1, name: '矿泉水', rankName:'元',  price:'2', number:'2',no:'2532511',priceAll:'4',dcp1:'在线支付'},
+		{id: 2, name: '可可可乐', rankName:'元',  price:'3', number:'3',no:'2532511',priceAll:'9',dcp1:'在线支付'}
+	]}
+}

@@ -1,0 +1,36 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.taole.member</groupId>
+  <artifactId>member-admin-webapp</artifactId>
+  <packaging>war</packaging>
+  <version>1.0-SNAPSHOT</version>
+  <name>member-admin-webapp Maven Webapp</name>
+  <url>http://maven.apache.org</url>
+  <dependencies>
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>servlet-api</artifactId>
+			<version>2.5</version>
+			<scope>provided</scope>
+		</dependency>
+	</dependencies>
+  <build>
+    <finalName>member-admin-webapp</finalName>
+  </build>
+  	<distributionManagement>
+		<repository>
+			<id>rdc-releases</id>
+			<url>https://repo.rdc.aliyun.com/repository/103447-release-YZJtFc/</url>
+		</repository>
+		<snapshotRepository>
+			<id>rdc-snapshots</id>
+			<url>https://repo.rdc.aliyun.com/repository/103447-snapshot-01TIHg/</url>
+		</snapshotRepository>
+	</distributionManagement>
+
+	<scm>
+		<developerConnection>scm:svn:svn://svn.51taole.cn/repos/taole/repos/projects/application/memberManagement/2-SRC/01-Trunk/member-admin-webapp</developerConnection>
+		<connection>scm:svn:svn://svn.51taole.cn/repos/taole/projects/application/memberManagement/2-SRC/01-Trunk/member-admin-webapp</connection>
+	</scm>
+</project>

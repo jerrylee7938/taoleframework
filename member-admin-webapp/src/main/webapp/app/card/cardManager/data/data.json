@@ -1,0 +1,8 @@
+{
+	result:{
+	total: 2,
+	items:[
+		{id: 1, name: '银卡', no:'2532511', price:'200', yxcs:'20',yxts:'30',cardyxlx:'季卡',type:'期限卡',dates:'2018-05-06',datedown:'2019-01-02',status:'上架',people:'张三',peoples:'李四'},
+		{id: 2, name: '金卡', no:'2532575', price:'270', yxcs:'10',yxts:'20',cardyxlx:'季卡',type:'期限卡',dates:'2018-05-06',datedown:'2019-01-02',status:'上架',people:'张三',peoples:'李四'}
+	]}
+}

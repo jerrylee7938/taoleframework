@@ -1,0 +1,8 @@
+{
+	result:{
+	total: 2,
+	items:[
+		{id: 1, name: '亦庄店', no:'2532511', price:'150',product:'景点', yxcs:'20',yxts:'张',cardyxlx:'季卡',type:'门票类',site:'张',num : '2',kcsx:'100',kcxx:'110'},
+		{id: 2, name: '华堂店', no:'2532575', price:'300',product:'可乐', yxcs:'10',yxts:'瓶',cardyxlx:'季卡',type:'商品类',site:'瓶',num :'10',kcsx:'100',kcxx:'110'}
+	]}
+}

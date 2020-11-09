@@ -1,0 +1,39 @@
+/**
+ *管理管理
+ */
+Ext.define('Taole.user.userInfoManager.model.UserInfoItem', {
+    extend: 'Ext.data.Model',
+    fields: [
+             "blanceNum",
+             "createTime",
+             "operateTime",
+             "updateTime",
+             "status",
+             "cardID",
+             "approver",
+             "operator",
+             "approverTime",
+             "statusName",
+             "entityName",
+             "telphone",
+             "cardNo",
+             "cardPwd",
+             "approverShopId",
+             "cardName",
+             "operatorShopId",
+             "description",
+             "cardTypeName",
+             "userId",
+             "userCardId",
+             "money",
+             "userName",
+             "bizNo",
+             "deadline",
+             "cardNum",
+             "cardStatus",
+             "auditTime",
+             "audit",
+             "shopName",
+             "description"
+             ]
+})
