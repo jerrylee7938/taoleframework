@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+      http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+      http://www.springframework.org/schema/context
+      http://www.springframework.org/schema/context/spring-context-4.2.xsd
+      http://www.springframework.org/schema/tx
+	  http://www.springframework.org/schema/tx/spring-tx-4.2.xsd
+      http://www.springframework.org/schema/util
+      http://www.springframework.org/schema/util/spring-util-4.2.xsd
+	  http://www.springframework.org/schema/task
+	  http://www.springframework.org/schema/task/spring-task-4.2.xsd
+      http://www.springframework.org/schema/aop
+      http://www.springframework.org/schema/aop/spring-aop-4.2.xsd"
+	default-lazy-init="false">
+
+	<bean class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer" />
+
+	<context:annotation-config />
+
+	<aop:aspectj-autoproxy />
+
+	<bean class="spring.WebConfig" />
+
+	<tx:annotation-driven />
+
+	<bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+		<property name="jndiName" value="${dataSource.jndiName}" />
+	</bean>
+	
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	
+	<task:annotation-driven executor="taskExecutor" scheduler="taskScheduler" />
+	
+	<task:executor id="taskExecutor" pool-size="5" />
+	
+	<task:scheduler id="taskScheduler" pool-size="10" />
+<!-- 	
+	<bean id="oracleLobHandler" class="org.springframework.jdbc.support.lob.OracleLobHandler" lazy-init="true">
+		<property name="nativeJdbcExtractor" ref="nativeJdbcExtractor"/>
+	</bean> -->
+	
+	<bean id="nativeJdbcExtractor" class="org.springframework.jdbc.support.nativejdbc.C3P0NativeJdbcExtractor" lazy-init="true"/>
+
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">
+		<property name="dataSource">
+			<ref bean="dataSource" />
+		</property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">${hibernate.dialect}</prop>
+				<prop key="hibernate.show_sql">${hibernate.showsql}</prop>
+				<prop key="hibernate.format_sql">${hibernate.showsql}</prop>
+				<prop key="jdbc.fetch_size">50</prop>
+				<prop key="jdbc.batch_size">125</prop>
+				<prop key="hibernate.hbm2ddl.auto">none</prop>
+				<!-- This is for oracle use, please config a jndi named defaultschema/portal. -->
+<!-- 				<prop key="hibernate.default_schema">${defaultschema/portal}</prop> -->
+				<prop key="hibernate.cache.region.factory_class">net.sf.ehcache.hibernate.SingletonEhCacheRegionFactory</prop>
+				<prop key="hibernate.cache.use_query_cache">true</prop>
+				<prop key="hibernate.cache.use_second_level_cache">true</prop>
+				<prop key="hibernate.query.substitutions">true 1,false 0</prop>
+			</props>
+		</property>
+		<property name="namingStrategy">
+			<bean class="org.hibernate.cfg.ImprovedNamingStrategy"/>
+		</property>
+<!-- 		<property name="lobHandler">
+			<ref bean="oracleLobHandler"></ref>
+		</property> -->
+		<property name="packagesToScan">
+			<ref bean="hibernate.packagesToScan" />
+		</property>
+	</bean>
+	
+	<bean id="configProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+        <property name="locations">
+            <list>
+                <!-- <value>classpath:config.properties</value> -->
+                <value>file:${config/path}/taole-portal-service/*.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PreferencesPlaceholderConfigurer">
+        <property name="properties" ref="configProperties" />
+    </bean>
+</beans>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CacheConfig>
+    <Enabled>true</Enabled>
+    <Domain>
+        <Cache name="EhCache" enabled="false" weight="2"/>
+        <Cache name="MapCache" enabled="true" weight="1"/>
+        <Cache name="MemCache" enabled="false" weight="2"/>
+        <Cache name="RedisCache" enabled="false" weight="1"/>
+    </Domain>
+    <Biz>
+        <Cache name="EhCache" enabled="false" weight="1"/>
+        <Cache name="MapCache" enabled="false" weight="1"/>
+        <Cache name="MemCache" enabled="true" weight="1"/>
+        <Cache name="RedisCache" enabled="true" weight="1"/>
+    </Biz>
+</CacheConfig>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MemCachedConfig>
+    <Enabled>false</Enabled>
+    <Servers>
+        <Server host="118.190.63.228" port="11211" weight="2"/>
+        <Server host="127.0.0.1" port="11211" weight="1"/>
+    </Servers>
+    <Config>
+        <property name="initConn">5</property>
+        <property name="minConn">5</property>
+        <property name="maxConn">250</property>
+        <property name="maxIdle">21600000</property>
+        <property name="maintSleep">30</property>
+        <property name="socketTO">10000</property>
+        <property name="socketConnTO">0</property>
+    </Config>
+</MemCachedConfig>

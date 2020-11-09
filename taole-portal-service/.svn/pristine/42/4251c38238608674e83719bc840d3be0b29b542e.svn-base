@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee   http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+	<display-name>taole portal service 1.0</display-name>
+	<context-param>
+		<param-name>defaultEncoding</param-name>
+		<param-value>UTF-8</param-value>
+	</context-param>
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>classpath*:spring/*.xml</param-value>
+	</context-param>
+	
+	<filter>
+		<filter-name>requestLoggerFilter</filter-name>
+		<filter-class>com.taole.framework.web.filter.RequestLoggerFilter</filter-class>
+	</filter>
+	
+	<!--跨域访问配置    跨域访问配置 -->
+	<filter>
+		<filter-name>CORS</filter-name>
+		<filter-class>com.thetransactioncompany.cors.CORSFilter</filter-class>
+		<init-param>
+			<param-name>cors.allowOrigin</param-name>
+			<param-value>*</param-value>
+		</init-param>
+		<init-param>
+			<param-name>cors.supportedMethods</param-name>
+			<param-value>GET, POST, HEAD, PUT, DELETE</param-value>
+		</init-param>
+		<init-param>
+			<param-name>cors.supportedHeaders</param-name>
+			<param-value>Accept, Origin, X-Requested-With, Content-Type, Last-Modified</param-value>
+		</init-param>
+		<init-param>
+			<param-name>cors.exposedHeaders</param-name>
+			<param-value>Set-Cookie</param-value>
+		</init-param>
+		<init-param>
+			<param-name>cors.supportsCredentials</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>
+		<filter-name>CORS</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	<!--跨域访问配置    跨域访问配置结束 -->  
+	
+	<filter>
+		<filter-name>Character Encoding Filter</filter-name>
+		<filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+		<init-param>
+			<param-name>encoding</param-name>
+			<param-value>UTF-8</param-value>
+		</init-param>
+		<init-param>
+			<param-name>forceEncoding</param-name>
+			<param-value>false</param-value>
+		</init-param>
+	</filter>
+	
+	<filter>
+		<filter-name>openSessionInViewFilter</filter-name>
+		<filter-class>org.springframework.orm.hibernate3.support.OpenSessionInViewFilter</filter-class>
+	</filter>
+	
+	<filter-mapping>
+		<filter-name>Character Encoding Filter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<filter-mapping>
+		<filter-name>openSessionInViewFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	
+	<filter-mapping>
+		<filter-name>requestLoggerFilter</filter-name>
+		<url-pattern>/service/rest/*</url-pattern>
+	</filter-mapping>
+<!-- ======================CAS ====================== 
+    <context-param>  
+      <param-name>casServerLogoutUrl</param-name>  
+      <param-value>https://dev.sclat.cn:8443/cas/logout</param-value>  
+    </context-param>
+    <context-param>  
+      <param-name>casClientLoginUrl</param-name>  
+      <param-value>http://cmis.sclat.cn/portal/index.jsp</param-value>  
+    </context-param>  
+	<listener>
+		<listener-class>org.jasig.cas.client.session.SingleSignOutHttpSessionListener</listener-class>
+	</listener>
+	<filter>
+		<filter-name>CAS Single Sign Out Filter</filter-name>
+		<filter-class>org.jasig.cas.client.session.SingleSignOutFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>CAS Single Sign Out Filter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>	
+
+	 <filter>
+		<filter-name>CAS Authentication Filter</filter-name>
+		<filter-class>org.jasig.cas.client.authentication.AuthenticationFilterWithExcludeUrl</filter-class>
+		<init-param>
+			<param-name>casServerLoginUrl</param-name>
+			<param-value>https://dev.sclat.cn:8443/cas/login</param-value>
+		</init-param>
+		<init-param>
+              <param-name>excludePaths</param-name>
+              <param-value>
+                   us.Resource/collection/getUserAuthUrl,
+                   us.Resource/collection/getSysAuthUrl,
+                   us.Group/collection/query,
+                   us.User/collection/getAllUsers,
+			       us.Resource/collection/getAuthUrl,
+			       us.User/collection/isWhiteUser,
+			       us.Organization/collection/queryOrgForBusSys,
+                   getMenu,
+                   register,
+                   regresult.jsp,
+                   code,
+                   reset-password.jsp,
+                   getPassword.jsp,
+                   findpassword,
+                   changepassword,
+                   us.User/collection/active,
+                   top,
+                   header.jsp,
+                   env.js.jsp,
+                   footer,
+                   .jpg,
+                   .png,
+                   .css,
+                   .jspf,
+                   .gif
+              </param-value>
+        </init-param>
+		<init-param>
+			<param-name>renew</param-name>
+			<param-value>false</param-value>
+		</init-param>
+		<init-param>
+			<param-name>gateway</param-name>
+			<param-value>false</param-value>
+		</init-param>
+		<init-param>
+			<param-name>serverName</param-name>
+			<param-value>http://cmis.sclat.cn</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>  
+	        <filter-name>CAS Authentication Filter</filter-name>  
+	        <url-pattern>/*</url-pattern>  
+	</filter-mapping> 
+
+	    <filter>  
+	        <filter-name>CAS Validation Filter</filter-name>  
+	        <filter-class>  
+	            org.jasig.cas.client.validation.Cas20ProxyReceivingTicketValidationFilter</filter-class>  
+	        <init-param>  
+	            <param-name>casServerUrlPrefix</param-name>  
+	            <param-value>https://dev.sclat.cn:8443/cas</param-value>  
+            </init-param>
+            
+            <init-param>  
+	            <param-name>encoding</param-name>  
+	            <param-value>UTF-8</param-value>  
+            </init-param>
+
+
+			<init-param>
+				<param-name>useSession</param-name>
+				<param-value>true</param-value>
+			</init-param>
+			<init-param>
+				<param-name>redirectAfterValidation</param-name>
+				<param-value>true</param-value>
+			</init-param>  
+	        <init-param>  
+	            <param-name>serverName</param-name>  
+	            <param-value>http://cmis.sclat.cn</param-value>  
+	        </init-param>  
+	    </filter>  
+	    <filter-mapping>  
+	        <filter-name>CAS Validation Filter</filter-name>  
+	        <url-pattern>/*</url-pattern>  
+	    </filter-mapping>  
+
+	    <filter>  
+	        <filter-name>CAS HttpServletRequest Wrapper Filter</filter-name>  
+	        <filter-class>  
+	            org.jasig.cas.client.util.HttpServletRequestWrapperFilter</filter-class>  
+	    </filter>  
+	    <filter-mapping>  
+	        <filter-name>CAS HttpServletRequest Wrapper Filter</filter-name>  
+	        <url-pattern>/*</url-pattern>  
+	    </filter-mapping> 
+
+	    <filter>  
+	        <filter-name>CAS Assertion Thread Local Filter</filter-name>  
+	        <filter-class>org.jasig.cas.client.util.AssertionThreadLocalFilter</filter-class>  
+	    </filter>  
+	    <filter-mapping>  
+	        <filter-name>CAS Assertion Thread Local Filter</filter-name>  
+	        <url-pattern>/*</url-pattern>  
+    </filter-mapping>
+ =====================END CAS=============================== -->
+
+	<listener>
+		<listener-class>com.taole.framework.web.listener.Log4jConfigListener</listener-class>
+	</listener>
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
+	<listener>
+		<listener-class>org.springframework.web.util.IntrospectorCleanupListener</listener-class>
+	</listener>
+	<listener>
+	    <listener-class>org.springframework.security.web.session.HttpSessionEventPublisher</listener-class>
+	</listener>
+	<servlet>
+		<servlet-name>service</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<load-on-startup>50</load-on-startup>
+	</servlet>
+	<servlet>
+		<servlet-name>Kaptcha</servlet-name>
+		<servlet-class>com.google.code.kaptcha.servlet.KaptchaServlet</servlet-class>
+		<init-param>
+			<param-name>kaptcha.noise.impl</param-name>
+			<param-value>com.google.code.kaptcha.impl.NoNoise</param-value>
+		</init-param>
+	</servlet>
+	
+	<servlet-mapping>
+		<servlet-name>service</servlet-name>
+		<url-pattern>/service/*</url-pattern>
+	</servlet-mapping>
+	
+	<servlet-mapping>
+		<servlet-name>Kaptcha</servlet-name>
+		<url-pattern>/kaptcha</url-pattern>
+	</servlet-mapping>
+	
+	<!--
+	<servlet>
+        <servlet-name>SysInitServlet</servlet-name>
+        <servlet-class>com.taole.portal.servlet.SysInitServlet</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+	-->
+    
+	<!--加入权限过滤器
+	<filter>
+		<filter-name>CommonAuthFilter</filter-name>
+		<filter-class>com.taole.userauthen.CommonAuthFilter
+		</filter-class>
+		<init-param>
+			<param-name>serivceGetUserUrlRes</param-name>
+			<param-value>http://cmis.sclat.cn/portal/service/rest/us.Resource/collection/getUserAuthUrl</param-value>
+		</init-param>
+		<init-param>
+			<param-name>getWhiteUrl</param-name>
+			<param-value>http://cmis.sclat.cn/portal/service/rest/us.Resource/collection/getAuthUrl</param-value>
+		</init-param>
+		<init-param>
+			<param-name>isWhiteUserUrl</param-name>
+			<param-value>http://cmis.sclat.cn/portal/service/rest/us.User/collection/isWhiteUser</param-value>
+		</init-param>
+		<init-param>
+			<param-name>appCode</param-name>
+			<param-value>SYS_APP</param-value>
+		</init-param>
+		<init-param>
+			<param-name>serviceGetAuthUri</param-name>
+			<param-value>http://cmis.sclat.cn/portal/service/rest/us.Resource/collection/getSysAuthUrl</param-value>
+		</init-param>
+		<init-param>
+			<param-name>admin</param-name>
+			<param-value>558dba2c445e4550b7f5deae9067e4c2</param-value>
+		</init-param>
+		<init-param>
+			<param-name>exclude</param-name>
+			<param-value>
+			getPortalDesk,
+			getPortalMenu,
+			getSysAuthUrl,
+			getUserAuthUrl,
+			us.Resource/collection/getAuthUrl,
+			us.User/collection/isWhiteUser,
+			noPrivilege.jsp,
+			us.Group/collection/query,
+			us.User/collection/getAllUsers,
+			us.User/collection/active,
+			us.Organization/collection/queryOrgForBusSys,
+            getMenu,
+            reset-password.jsp,
+            getPassword.jsp,
+            findpassword,
+            changepassword,
+            register,
+            regresult.jsp,
+            header.jsp,
+            env.js.jsp,
+            .jpg,
+            .png,
+            .css,
+            .jspf,
+            .gif,
+            code,
+            footer
+			</param-value>
+		</init-param>
+		<init-param>
+			<param-name>loginPage</param-name>
+			<param-value>index.jsp</param-value>
+		</init-param>
+		<init-param>
+			<param-name>errorPage</param-name>
+			<param-value>http://cmis.sclat.cn/portal/noPrivilege.jsp</param-value>
+		</init-param>
+	</filter>
+	 <filter-mapping>
+		<filter-name>CommonAuthFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	加入权限过滤器-->
+	<session-config>
+		<session-timeout>30</session-timeout>
+	</session-config>
+	
+	<welcome-file-list>
+		<welcome-file>index.jsp</welcome-file>
+	</welcome-file-list>
+</web-app>

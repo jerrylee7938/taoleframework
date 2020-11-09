@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="
+        http://www.springframework.org/schema/beans 
+        http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+        http://www.springframework.org/schema/context 
+        http://www.springframework.org/schema/context/spring-context-4.2.xsd" default-lazy-init="false">
+	
+	<mvc:annotation-driven>
+		<mvc:return-value-handlers>
+			<bean class="com.taole.framework.support.ObjectMethodReturnValueHandler" />
+		</mvc:return-value-handlers>
+	</mvc:annotation-driven>
+	
+	<bean name="applicationSwaggerConfig" class="spring.SwaggerConfig" />
+    <mvc:default-servlet-handler/>
+	
+	<mvc:cors>
+		<mvc:mapping path="/**"
+			allowed-origins="*"
+			allowed-methods="POST, GET, OPTIONS, DELETE, PUT"
+			allowed-headers="Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With"
+			allow-credentials="true"/>
+	</mvc:cors>
+	
+	<!--避免IE执行AJAX时，返回JSON出现下载文件 -->
+	<bean id="stringConverter" class="org.springframework.http.converter.StringHttpMessageConverter">
+		<property name="supportedMediaTypes">
+			<list>
+				<value>text/plain;charset=UTF-8</value>
+			</list>
+		</property>
+	</bean>
+	<bean id="mappingJackson2HttpMessageConverter" class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+		<property name="supportedMediaTypes">
+			<list>
+				<value>text/html;charset=UTF-8</value>
+				<value>text/json;charset=UTF-8</value>
+				<value>application/json;charset=UTF-8</value>
+			</list>
+		</property>
+	</bean>
+	<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+				<ref bean="mappingJackson2HttpMessageConverter"/>
+				<ref bean="stringConverter"/>
+			</list>
+		</property>
+	</bean>
+	<mvc:annotation-driven>
+	    <!-- 处理responseBody 里面日期类型 -->
+	    <mvc:message-converters>
+	        <bean
+	                class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+	            <property name="objectMapper">
+	                <bean class="com.fasterxml.jackson.databind.ObjectMapper">
+	                    <property name="dateFormat">
+	                        <bean class="java.text.SimpleDateFormat">
+	                            <constructor-arg type="java.lang.String" value="yyyy-MM-dd HH:mm:ss"/>
+	                        </bean>
+	                    </property>
+	                </bean>
+	            </property>
+	        </bean>
+	    </mvc:message-converters>
+	</mvc:annotation-driven>
+	
+	<!-- <mvc:interceptors>
+		<bean class="com.taole.cms.web.interceptor.CommonModelInterceptor"/>
+	</mvc:interceptors> -->
+	
+	<context:component-scan base-package="com.taole.framework.rest" />
+	
+	<bean id="freemarkerConfigurer" class="com.taole.framework.template.FreeMarkerConfigurer">
+		<property name="defaultEncoding" value="UTF-8"/>
+		<!-- 
+		<property name="templateLoaderPath" value="/WEB-INF/template"/>
+		 -->
+		<property name="preTemplateLoaders">
+			<list>
+				<bean class="com.taole.framework.template.StringProtocolFreeMarkerTemplateLoader"/>
+				<bean class="com.taole.framework.template.ClasspathProtocolFreeMarkerTemplateLoader"/>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="freeMarkerViewResolver" class="org.springframework.web.servlet.view.freemarker.FreeMarkerViewResolver">
+		<property name="contentType" value="text/html; charset=UTF-8"/>
+	</bean>
+	
+    <bean id="defaultViewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver" />
+
+</beans>

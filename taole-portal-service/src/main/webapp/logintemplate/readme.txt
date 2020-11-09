@@ -1,0 +1,9 @@
+用cas系统登录：
+	1、将images目录复制到cas/images
+	2、将portal_login.jsp复制到cas/WEB-INF/view/jsp/default/ui
+	3、检查cas/WEB-INF/classes/default_views.properties配置文件，找到casLoginView.url配置项，
+	将值修改为/WEB-INF/view/jsp/default/ui/portal_login.jsp
+	4、重启cas服务
+用普通方式登录
+	1、将images目录下的文件复制到image下
+	2、将login.jsp覆盖原login.jsp
