@@ -1,0 +1,327 @@
+package com.taole.member.service.rest;
+
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.framework.annotation.ReturnCodeInfo;
+import com.taole.framework.dao.util.Range;
+import com.taole.framework.dao.util.Sorter;
+import com.taole.framework.rest.RestService;
+import com.taole.framework.rest.RestUrlRuler;
+import com.taole.framework.rest.ReturnResult;
+import com.taole.framework.service.ServiceResult;
+import com.taole.framework.util.SerializableJSONTransformer;
+import com.taole.member.ProjectConfig;
+import com.taole.member.domain.ShopInfo;
+import com.taole.member.domain.param.ReportService.Query;
+import com.taole.member.manager.RptSalesByGoodsManager;
+import com.taole.member.manager.RptSalesByPayTypeManager;
+import com.taole.member.manager.RptSalesByTradeTypeManager;
+import com.taole.member.manager.ShopInfoManager;
+import com.taole.member.manager.UserBillManager;
+import com.taole.toolkit.util.DateStyle;
+import com.taole.toolkit.util.DateUtil;
+import com.taole.toolkit.util.ReturnCode;
+import com.taole.toolkit.util.biz.ConvertUtil;
+import com.taole.toolkit.util.excel.XlsJxlAction;
+import com.taole.toolkit.util.excel.XlsObject;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import jxl.write.WritableWorkbook;
+
+@Api(tags = { "报表后台管理" })
+@RequestMapping(value = RestUrlRuler.REST_ROOT + "/" + ProjectConfig.PREFIX + "Report")
+@Controller
+@RestService(name = ProjectConfig.PREFIX + "Report")
+public class ReportService {
+	private Logger logger = LoggerFactory.getLogger(ReportService.class);
+	private final static String RETURN_CODE_URL = ProjectConfig.RETURN_CODE_PATH + "Report_";
+	@Autowired
+	private RptSalesByGoodsService rptSalesByGoodsService;
+	@Autowired
+	private RptSalesByTradeTypeService rptSalesByTradeTypeService;
+	@Autowired
+	private RptSalesByPayTypeService rptSalesByPayTypeService;
+	@Autowired
+	private RptSalesByGoodsManager rptSalesByGoodsManager;
+	@Autowired
+	private RptSalesByPayTypeManager rptSalesByPayTypeManager;
+	@Autowired
+	private RptSalesByTradeTypeManager rptSalesByTradeTypeManager;
+	@Autowired
+	private ShopInfoManager shopInfoManager;
+	@Autowired
+	private UserBillManager userBillManager;
+	/**
+	 * 店面商品销售额日报表
+	 */
+	@RequestMapping(value = "/collection/query", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "报表管理查询列表", httpMethod = "GET", response = Query.ReportServiceQueryResp.class, notes = "报表管理查询列表")
+	@ApiResponses(value = { @ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "query.html") })
+	@ReturnCodeInfo(value = "query")
+	public @ResponseBody Object query(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "分页参数，开始行数从0开始", required = true, defaultValue = "0") @RequestParam int start,
+			@ApiParam(value = "分页参数，每页显示条数", required = true, defaultValue = "25") @RequestParam int limit,
+			@ModelAttribute Query.ReportServiceQueryReq queryCondition) {
+		try {
+			Range range = new Range(start, limit);
+			Sorter sorter = new Sorter().desc("createTime");
+			// 获取请求参数
+			String circleType = queryCondition.getCircleType();// 统计周期类型（day日报表，month月报表）
+			String dimens = queryCondition.getDimens();// 统计维度类型（goods商品、tradeType交易类型，payType支付类型）
+			String shopId = queryCondition.getShopId();
+			String statDate = queryCondition.getStatDate();
+			if (circleType.equals("day") && dimens.equals("goods")) {// 按商品统计日报表
+				return rptSalesByGoodsService.queryByDay(request, response, range, sorter);
+			} else if (circleType.equals("month") && dimens.equals("goods")) {// 按商品统计月报表
+				return rptSalesByGoodsService.queryByMonth(request, response, range, sorter);
+
+			} else if (circleType.equals("day") && dimens.equals("tradeType")) {// 按交易类型统计日报表
+				return rptSalesByTradeTypeService.queryByDay(request, response, range, sorter);
+			} else if (circleType.equals("month") && dimens.equals("tradeType")) {// 按交易类型统计月报表
+				return rptSalesByTradeTypeService.queryByMonth(request, response, range, sorter);
+
+			} else if (circleType.equals("day") && dimens.equals("payType")) {// 按支付类型统计日报表
+				return rptSalesByPayTypeService.queryByDay(request, response, range, sorter);
+			} else if (circleType.equals("month") && dimens.equals("payType")) {// 按支付类型统计月报表
+				return rptSalesByPayTypeService.queryByMonth(request, response, range, sorter);
+			}
+
+			else {
+				return new ServiceResult(ReturnResult.FAILURE, "统计周期或统计维度不正确！");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new ServiceResult(ReturnResult.FAILURE, e.getMessage());
+		}
+	}
+
+	/**
+	 * 导出报表
+	 */
+	@RequestMapping(value = "/collection/exportExcel", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "导出文件", httpMethod = "GET", notes = "导出文件")
+	@ApiResponses(value = { @ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "exportExcel.html") })
+	@ReturnCodeInfo(value = "exportExcel")
+	public Object exportExcel(HttpServletRequest request, HttpServletResponse response,
+			@ModelAttribute Query.ReportServiceQueryReq queryCondition) {
+		com.taole.toolkit.util.ReturnResult returnResult = new com.taole.toolkit.util.ReturnResult();
+		try {
+			JSONArray dataJa = new JSONArray();
+			String fileName = "";
+			// 获取请求参数
+			Integer start = 0;
+			Integer limit = 99999;
+			Range range = new Range(start, limit);
+			Sorter sorter = new Sorter().desc("createTime");
+			String circleType = queryCondition.getCircleType();// 统计周期类型（day日报表，month月报表）
+			String dimens = queryCondition.getDimens();// 统计维度类型（goods商品、tradeType交易类型，payType支付类型）
+			String shopId = queryCondition.getShopId();
+			String statDate = queryCondition.getStatDate();
+			if (circleType.equals("day") && dimens.equals("goods")) {// 按商品统计日报表
+				JSONObject joJsonObject = (JSONObject) rptSalesByGoodsService.queryByDay(request, response, range,sorter);
+				dataJa = joJsonObject.getJSONArray("items");
+				fileName = "商品统计日报表";
+			} else if (circleType.equals("month") && dimens.equals("goods")) {// 按商品统计月报表
+				ServiceResult serviceResult = (ServiceResult) rptSalesByGoodsService.queryByMonth(request, response, range, sorter);
+				JSONObject obj = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(serviceResult.getResult());
+				dataJa = obj.getJSONArray("items");
+				fileName = "商品统计月报表";
+			} else if (circleType.equals("day") && dimens.equals("tradeType")) {// 按交易类型统计日报表
+				JSONObject joJsonObject = (JSONObject) rptSalesByTradeTypeService.queryByDay(request, response, range, sorter);
+				dataJa = joJsonObject.getJSONArray("items");
+				fileName = "交易类型统计日报表";
+			} else if (circleType.equals("month") && dimens.equals("tradeType")) {// 按交易类型统计月报表
+				ServiceResult serviceResult = (ServiceResult) rptSalesByTradeTypeService.queryByMonth(request, response, range, sorter);
+				JSONObject obj = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(serviceResult.getResult());
+				dataJa = obj.getJSONArray("items");
+				fileName = "交易类型统计月报表";
+			} else if (circleType.equals("day") && dimens.equals("payType")) {// 按支付类型统计日报表
+				JSONObject joJsonObject = (JSONObject) rptSalesByPayTypeService.queryByDay(request, response, range, sorter);
+				dataJa = joJsonObject.getJSONArray("items");
+				fileName = "支付类型统计日报表";
+			} else if (circleType.equals("month") && dimens.equals("payType")) {// 按支付类型统计月报表
+				ServiceResult serviceResult = (ServiceResult) rptSalesByPayTypeService.queryByMonth(request, response, range, sorter);
+				JSONObject obj = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(serviceResult.getResult());
+				dataJa = obj.getJSONArray("items");
+				fileName = "支付类型统计月报表";
+			}
+
+			else {
+				return new ServiceResult(ReturnResult.FAILURE, "统计周期或统计维度不正确！");
+			}
+
+			
+			XlsObject xlsObject = query4ExcelData(dataJa, dimens,circleType);
+			request.getSession().setAttribute("xlsObject", xlsObject);
+			returnResult.setCode(ReturnCode.SUCCESS);
+			// 下载excel
+			XlsJxlAction jxlAction = new XlsJxlAction();
+			OutputStream os = response.getOutputStream();// 取得输出流
+			response.reset();// 清空输出流
+			String titleStr = fileName + "-" + ConvertUtil.DateUtils
+					.getFormattedString(new Date(System.currentTimeMillis()), DateStyle.YYYY_MM_DD.getValue());
+			response.setHeader("Content-disposition",
+					"attachment; filename=" + new String(titleStr.getBytes("GB2312"), "8859_1") + ".xls");// 设定输出文件头
+			response.setContentType("application/msexcel");// 定义输出类型
+			WritableWorkbook book = jxlAction.getWritableWorkbook(os);
+			jxlAction.generateXls(xlsObject, book, fileName);
+		
+		} catch (Exception e) {
+			e.printStackTrace();
+			returnResult.setCode(ReturnCode.SERVER_ERROR);
+			returnResult.setDesc(e.getMessage());
+		}
+		response.setHeader("code", returnResult.getCode());
+		response.setHeader("desc", returnResult.getDesc());
+		return null;
+	}
+	
+	// 制作excel表格信息
+		private XlsObject query4ExcelData(JSONArray resultAry, String dimens,String circleType) throws Exception {
+			int columnNum = 5;
+			List<String[]> rowList = new ArrayList<String[]>();
+			for (int i = 0; i < resultAry.size(); i++) {
+				JSONObject jsonObject = resultAry.getJSONObject(i);
+				String[] rowData = new String[5];
+				try {
+					rowData[0] = jsonObject.getString("statDate");
+				} catch (Exception e) {
+					rowData[0] = "";
+				}
+				try {
+					rowData[1] = jsonObject.getString("shopName");
+				} catch (Exception e) {
+					rowData[1] = "";
+				}
+				try {
+					rowData[2] = (null !=jsonObject.getString("statMoney")? jsonObject.getString("statMoney") : "");
+				} catch (Exception e) {
+					rowData[2] = "";
+				}
+				try {
+					rowData[3] = (null != jsonObject.getString("statAmount") ? jsonObject.getString("statAmount") : "");
+				} catch (Exception e) {
+					rowData[3] = "";
+				}
+				try {
+					rowData[4] = (null != jsonObject.getString("objectName") ? jsonObject.getString("objectName") : "");
+				} catch (Exception e) {
+					rowData[4] = "";
+				}
+				rowList.add(rowData);
+			}
+			// 制作title数据
+			String[] titles = new String[columnNum];
+			titles[0] = "日期";
+			titles[1] = "店面";
+			titles[2] = "营业总额";
+			titles[3] = "";
+			titles[4] = "";
+			if(circleType.equals("day") && dimens.equals("goods")){
+				titles[3] = "销售数量";
+				titles[4] = "商品明细";
+			}else if(circleType.equals("month") && dimens.equals("goods")){
+				titles[3] = "销售数量";
+				titles[4] = "商品明细";
+			}else if(circleType.equals("day") && dimens.equals("tradeType")){
+				titles[3] = "交易笔数";
+				titles[4] = "交易类型";
+			}else if(circleType.equals("month") && dimens.equals("tradeType")){
+				titles[3] = "交易笔数";
+				titles[4] = "交易类型";
+			}else if(circleType.equals("day") && dimens.equals("payType")){
+				titles[3] = "支付笔数";
+				titles[4] = "支付类型";
+			}else if(circleType.equals("month") && dimens.equals("payType")){
+				titles[3] = "支付笔数";
+				titles[4] = "支付类型";
+			}
+
+			XlsObject xlsObject = new XlsObject();
+			xlsObject.setXlsTitles(titles);
+			xlsObject.setRowList(rowList);
+			return xlsObject;
+		}
+		
+		/**
+		 *打印
+		 */
+	@RequestMapping(value = "/collection/printReport", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "报表管理打印接口", httpMethod = "GET", response = Query.ReportServiceQueryResp.class, notes = "报表管理打印接口")
+	@ApiResponses(value = { @ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "query.html") })
+	@ReturnCodeInfo(value = "printReport")
+	public @ResponseBody Object printReport(HttpServletRequest request, HttpServletResponse response,
+			@ModelAttribute Query.ReportServiceQueryReq queryCondition) {
+		try {
+			Sorter sorter = new Sorter().desc("operateTime");
+			// 获取请求参数
+			String circleType = queryCondition.getCircleType();// 统计周期类型（day日报表，month月报表）
+			String shopId = queryCondition.getShopId();
+			String statDate = queryCondition.getStatDate();
+		/*	if(){
+				
+			}
+			*/
+			JSONArray resultAry = new JSONArray();
+			if (circleType.equals("day")) {// 按商品统计日报表
+				JSONObject obj1 = rptSalesByGoodsManager.queryByDay(shopId, statDate);
+				JSONObject obj2 = rptSalesByPayTypeManager.queryByDay(shopId, statDate);
+				JSONObject obj3 = rptSalesByTradeTypeManager.queryByDay(shopId, statDate);
+				
+				resultAry.add(obj1);
+				resultAry.add(obj2);
+				resultAry.add(obj3);
+			} else if (circleType.equals("month")) {// 按商品统计月报表
+				ServiceResult serviceResult = (ServiceResult) rptSalesByGoodsService.queryByMonth(request, response, null, null);
+				JSONObject obj1 = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(serviceResult.getResult());
+				ServiceResult serviceResult1 = (ServiceResult) rptSalesByTradeTypeService.queryByMonth(request, response, null, null);
+				JSONObject obj2 = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(serviceResult1.getResult());
+				ServiceResult serviceResult2 = (ServiceResult) rptSalesByPayTypeService.queryByMonth(request, response, null, null);
+				JSONObject obj3 = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(serviceResult2.getResult());
+				resultAry.add(obj1);
+				resultAry.add(obj2);
+				resultAry.add(obj3);
+			}
+			
+			JSONObject resultJo = new JSONObject();
+			ShopInfo shopInfo = shopInfoManager.getShopInfo(shopId);
+			
+			resultJo.put("total", userBillManager.getTotalMoney(statDate, circleType,queryCondition.getShopId()));
+			resultJo.put("shopName", shopInfo.getName());
+			if(circleType.equals("day")){
+				resultJo.put("reportName", "日营业报表");
+			}else if(circleType.equals("month")){
+				resultJo.put("reportName", "月营业报表");
+			}
+			resultJo.put("reportDate", queryCondition.getStatDate());
+			resultJo.put("createTime", DateUtil.DateToString(new Date(), DateStyle.YYYY_MM_DD_HH_MM));
+			resultJo.put("demins", resultAry);
+			return new ServiceResult(ReturnResult.SUCCESS, "成功", resultJo);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new ServiceResult(ReturnResult.FAILURE, e.getMessage());
+		}
+	}
+}

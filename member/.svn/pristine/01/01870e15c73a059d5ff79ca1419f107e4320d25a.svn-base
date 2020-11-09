@@ -1,0 +1,82 @@
+package com.taole.member.domain.param.ShopCardApi;
+
+import java.util.List;
+
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+
+public class BuyCard {
+
+	public static class ShopCardApiBuyCardReq {
+		
+		@ApiModelProperty(value = "店铺ID", required = true)
+		private String shopId;
+		
+		@ApiModelProperty(value = "用户ID", required = true)
+		private String userId;
+		
+		@ApiModelProperty(value = "会员卡信息列表", required = true)
+		private List<Card> cards;
+
+		public String getShopId() {
+			return shopId;
+		}
+
+		public void setShopId(String shopId) {
+			this.shopId = shopId;
+		}
+
+		public String getUserId() {
+			return userId;
+		}
+
+		public void setUserId(String userId) {
+			this.userId = userId;
+		}
+
+		public List<Card> getCards() {
+			return cards;
+		}
+
+		public void setCards(List<Card> cards) {
+			this.cards = cards;
+		}
+	}
+	
+	@ApiModel(value = "订单会员卡信息")
+	public static class Card{
+		
+		@ApiModelProperty(value = "会员卡ID", required = true)
+		private String cardId;
+		
+		@ApiModelProperty(value = "会员卡名称", required = true)
+		private String crrdName;
+		
+		@ApiModelProperty(value = "会员卡金额", required = true)
+		private Double money;
+
+		public String getCardId() {
+			return cardId;
+		}
+
+		public void setCardId(String cardId) {
+			this.cardId = cardId;
+		}
+
+		public String getCrrdName() {
+			return crrdName;
+		}
+
+		public void setCrrdName(String crrdName) {
+			this.crrdName = crrdName;
+		}
+
+		public Double getMoney() {
+			return money;
+		}
+
+		public void setMoney(Double money) {
+			this.money = money;
+		}
+	}
+}

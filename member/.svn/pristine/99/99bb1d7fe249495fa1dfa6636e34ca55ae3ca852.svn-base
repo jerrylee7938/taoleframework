@@ -1,0 +1,238 @@
+package com.taole.member.manager;
+
+import java.sql.SQLException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.HibernateException;
+import org.hibernate.SQLQuery;
+import org.hibernate.Session;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.hibernate3.HibernateCallback;
+import org.springframework.orm.hibernate3.support.HibernateDaoSupport;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.framework.dao.DomainObjectDao;
+import com.taole.member.Constants.CardType;
+import com.taole.member.Constants.MemberCardStatus;
+import com.taole.member.Constants.PayType;
+import com.taole.member.Constants.TransactionType;
+import com.taole.member.Constants.UnitType;
+import com.taole.member.Constants.UserBillApplyStatus;
+import com.taole.member.ProjectConfig;
+import com.taole.member.condition.OrderServiceCondition;
+import com.taole.member.condition.ShopCardCondition;
+import com.taole.member.config.MemberConfig;
+import com.taole.member.domain.CardInfo;
+import com.taole.member.domain.MemberCard;
+import com.taole.member.domain.Order;
+import com.taole.member.domain.OrderService;
+import com.taole.member.domain.ShopStoreSet;
+import com.taole.member.domain.UserBill;
+import com.taole.member.domain.UserBillApply;
+import com.taole.member.sql.CommonSql;
+import com.taole.member.sql.ShopCardSql;
+import com.taole.toolkit.dict.manager.DictionaryManager;
+import com.taole.toolkit.dict.manager.DictionaryManager.DictNode;
+
+@Component
+public class ShopCardManager {
+
+	@Resource(name = ProjectConfig.PREFIX + "shopStoreSetDao")
+	DomainObjectDao<ShopStoreSet> shopStoreSetDao;
+	
+	@Autowired
+	private CardNoManager cardNoManager;
+	
+	@Autowired
+	private MemberCardManager memberCardManager;
+	
+	@Autowired
+	private OrderManager orderManager;
+	
+	@Autowired
+	private OrderServiceManager orderServiceManager;
+	
+	@Autowired
+	private CardInfoManager cardInfoManager;
+	
+	@Autowired
+	private UserBillApplyManager userBillApplyManager;
+	
+	@Autowired
+	private UserBillManager userBillManager;
+	
+	@Autowired
+	private DictionaryManager dictionaryManager;
+	
+	@Autowired
+	private MemberConfig memberConfig;
+	
+	/**
+	 * 获取店铺所有可售会员卡信息
+	 * @param shopId
+	 * @return
+	 */
+	public JSONArray allShopCard(String shopId){
+		
+		Map<String, DictNode> nodeMap = dictionaryManager.getDictNods(CardType.DICTIONARY_CARD_TYPE_CODE_ID);
+		
+		JSONArray resultArray = new JSONArray();
+		for(Map.Entry<String, DictNode> entry : nodeMap.entrySet()){
+			JSONObject cardType = new JSONObject();
+			cardType.put("id", entry.getKey());
+			cardType.put("name", entry.getValue().getName());
+			
+			ShopCardCondition condition = new ShopCardCondition();
+			condition.setCardType(entry.getKey());
+			condition.setShopId(shopId);
+			JSONArray cardArray = shopCardList(condition);
+			cardType.put("cards", cardArray);
+			
+			resultArray.add(cardType);
+		}
+		
+		return resultArray;
+	}
+	
+	public Integer shopCardCount(final ShopCardCondition condition){
+		List<?> list = ((HibernateDaoSupport) shopStoreSetDao).getHibernateTemplate().executeWithNativeSession(new HibernateCallback<List<?>>() {
+			@Override
+			public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+				String sql = ShopCardSql.shopGoodsList(condition);
+				sql = CommonSql.count(sql);
+				SQLQuery sqlQuery = session.createSQLQuery(sql);
+				List<?> list = sqlQuery.list();
+				return list;
+			}
+		});
+		return Integer.valueOf(list.get(0).toString());
+	}
+	
+	public JSONArray shopCardList(final ShopCardCondition condition){
+		
+		List<?> shopGoodsList = ((HibernateDaoSupport) shopStoreSetDao).getHibernateTemplate().executeWithNativeSession(new HibernateCallback<List<?>>() {
+			@Override
+			public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+				String sql = ShopCardSql.shopGoodsList(condition);
+				SQLQuery sqlQuery = session.createSQLQuery(sql);
+				List<?> list = sqlQuery.list();
+				return list;
+			}
+		});
+		
+		JSONArray resultAry = new JSONArray();
+		for(int i=0; i<shopGoodsList.size(); i++){
+			Object[] objs = (Object[]) shopGoodsList.get(i);
+			JSONObject object = new JSONObject();
+			object.put("cardId", objs[0]);
+			object.put("cardName", objs[1]);
+			object.put("code", objs[2]);
+			object.put("money", objs[3]);
+			object.put("cardImage", StringUtils.isNotBlank((String)objs[4]) ? objs[4] : memberConfig.getDefaultImage());
+			object.put("periodOfValidity", objs[5]);
+			resultAry.add(object);
+		}
+		
+		return resultAry;
+	}
+	
+	public JSONArray shopCardListForRecharge(final ShopCardCondition condition){
+		
+		List<?> shopGoodsList = ((HibernateDaoSupport) shopStoreSetDao).getHibernateTemplate().executeWithNativeSession(new HibernateCallback<List<?>>() {
+			@Override
+			public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+				String sql = ShopCardSql.shopCardListForRecharge(condition);
+				SQLQuery sqlQuery = session.createSQLQuery(sql);
+				List<?> list = sqlQuery.list();
+				return list;
+			}
+		});
+		
+		JSONArray resultAry = new JSONArray();
+		for(int i=0; i<shopGoodsList.size(); i++){
+			Object[] objs = (Object[]) shopGoodsList.get(i);
+			JSONObject object = new JSONObject();
+			object.put("cardId", objs[0]);
+			object.put("cardName", objs[1]);
+			object.put("code", objs[2]);
+			object.put("money", objs[3]);
+			
+			resultAry.add(object);
+		}
+		
+		return resultAry;
+	}
+	
+	/**
+	 * 购卡订单支付完成
+	 * 购卡完成需要操作member_card、user_bill_apply、user_bill表数据
+	 * @param orderId
+	 */
+	@Transactional
+	public void buyCardSuccess(String orderId){
+		
+		Order order = orderManager.getOrder(orderId);
+		
+		OrderServiceCondition osCondition = new OrderServiceCondition();
+		osCondition.setOrderId(orderId);
+		List<OrderService> orderServices = orderServiceManager.list(osCondition);
+		for(OrderService os : orderServices){
+			MemberCard memberCard = new MemberCard();
+			memberCard.setUserId(order.getAccountId());
+			memberCard.setCardId(os.getServiceId());
+			memberCard.setBizNo(memberCardManager.generateCreateCardCode());
+			memberCard.setCardNo(cardNoManager.getCardNo());
+			
+			CardInfo cardInfo = cardInfoManager.getCardInfo(os.getServiceId());
+			memberCard.setMoney(cardInfo.getMoney());
+			if(cardInfo.getCardType().equals(CardType.TIMES_COUNT))
+				memberCard.setCardNum(cardInfo.getTotalNum());
+			
+			memberCard.setOperatorShopId(order.getShopId());
+			//memberCard.setDeadline(memberCardManager.getDeadDate(memberCard, null));//激活后计算过期时间
+			memberCard.setAuditTime(new Date());
+			memberCard.setStatus(MemberCardStatus.TO_BE_ACTIVE);
+			memberCard.setDescription("小程序购卡");
+			memberCard.setCardImage(StringUtils.isNotBlank(cardInfo.getCardImage()) ? cardInfo.getCardImage() : null);
+			String memberCardId = memberCardManager.createMemberCard(memberCard);
+			
+			UserBillApply userBillApply = new UserBillApply();
+			userBillApply.setShopId(order.getShopId());
+			userBillApply.setCardId(os.getServiceId());
+			userBillApply.setChargeNo(1);
+			userBillApply.setAmount(1);
+			userBillApply.setUserCardId(memberCardId);
+			userBillApply.setTransType(TransactionType.BK);
+			userBillApply.setMoney(cardInfo.getMoney());
+			userBillApply.setPayType(PayType.WX);
+			userBillApply.setStatus(UserBillApplyStatus.AUDITPASS);
+			userBillApply.setDescription("小程序购卡");
+			userBillApplyManager.createUserBillApply(userBillApply);
+			
+			
+			UserBill userBill = new UserBill();
+			userBill.setUserBillNo(memberCardManager.generateCreateCardCode());
+			userBill.setUserId(order.getAccountId());
+			userBill.setUserCardId(memberCardId);
+			userBill.setConsumeMoney(cardInfo.getMoney());
+			userBill.setConsumeUnit(UnitType.YUAN);
+			userBill.setActionTypeId(TransactionType.BK);
+			userBill.setInOutType("WJWC");
+			userBill.setBalance(0D);
+			userBill.setBalanceNum(cardInfo.getTotalNum());
+			userBill.setPayType(PayType.WX);
+			userBill.setDescription("小程序购卡");
+			userBill.setOperateTime(new Date());
+			userBill.setOperatorShopId(order.getShopId());
+			userBillManager.createUserBill(userBill);
+		}
+	}
+}

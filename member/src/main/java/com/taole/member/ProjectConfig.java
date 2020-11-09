@@ -1,0 +1,166 @@
+/**
+ * Project:member
+ * File:ProjectConfig.java 
+ * Copyright 2014-2016 Bei Jing Yi Sheng Jia Technology Development Co., Ltd. All rights reserved.
+ */
+package com.taole.member;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.PropertySource;
+
+import com.taole.framework.bean.ProjectBeanNameGenerator;
+import com.taole.framework.dao.DomainObjectDao;
+import com.taole.framework.dao.hibernate.BaseHibernateDaoSupport;
+import com.taole.framework.events.EventTarget;
+import com.taole.framework.module.ModuleConfig;
+import com.taole.member.domain.CardNo;
+import com.taole.member.domain.GoodsInfo;
+import com.taole.member.domain.GoodsRefType;
+import com.taole.member.domain.MemberCard;
+import com.taole.member.domain.Order;
+import com.taole.member.domain.OrderService;
+import com.taole.member.domain.RptSalesByGoods;
+import com.taole.member.domain.RptSalesByPayType;
+import com.taole.member.domain.RptSalesByTradeType;
+import com.taole.member.domain.ShopInfo;
+import com.taole.member.domain.ShopStoreSet;
+import com.taole.member.domain.SmsVerify;
+import com.taole.member.domain.TradeLock;
+import com.taole.member.domain.User;
+import com.taole.member.domain.UserAttr;
+import com.taole.member.domain.UserBill;
+import com.taole.member.domain.UserBillApply;
+import com.taole.member.domain.Account;
+import com.taole.member.domain.CardInfo;
+import com.taole.member.domain.GoodsBill;
+import com.taole.member.domain.GoodsBillDetail;
+import com.taole.member.domain.UserGoodsOrder;
+
+@ModuleConfig(name = ProjectConfig.NAME, domainPackages = { "com.taole.member.domain"})
+@ComponentScan(basePackages = { "com.taole.member" }, nameGenerator = ProjectBeanNameGenerator.class)
+@PropertySource(name = "member.env", value = { "classpath:com/taole/member/proj.properties" })
+public class ProjectConfig {
+
+	public static final String NAME = "member";
+
+	public static final String PREFIX = NAME + ".";
+	
+	public static final String RETURN_CODE_PATH = "http://localhost:8180/return-code/member_";
+
+	@Bean(name = PREFIX + "eventTarget")
+	public EventTarget generateEventTarget() {
+		return new EventTarget();
+	}
+	
+	
+	@Bean(name = PREFIX + "cardInfoDao")
+	public DomainObjectDao<CardInfo> generateCardInfo() {
+		return new BaseHibernateDaoSupport<CardInfo>(CardInfo.class);
+	}
+	
+	@Bean(name = PREFIX + "shopInfoDao")
+	public DomainObjectDao<ShopInfo> generateShopInfo() {
+		return new BaseHibernateDaoSupport<ShopInfo>(ShopInfo.class);
+	}
+	
+	@Bean(name = PREFIX + "goodsInfoDao")
+	public DomainObjectDao<GoodsInfo> generateGoodsInfo() {
+		return new BaseHibernateDaoSupport<GoodsInfo>(GoodsInfo.class);
+	}
+
+	@Bean(name = PREFIX + "shopStoreSetDao")
+	public DomainObjectDao<ShopStoreSet> generateShopStoreSet() {
+		return new BaseHibernateDaoSupport<ShopStoreSet>(ShopStoreSet.class);
+	}
+	
+	@Bean(name = PREFIX + "accountDao")
+	public DomainObjectDao<Account> generateAccount() {
+		return new BaseHibernateDaoSupport<Account>(Account.class);
+	}
+	
+	@Bean(name = PREFIX + "memberCardDao")
+	public DomainObjectDao<MemberCard> generateMemberCard() {
+		return new BaseHibernateDaoSupport<MemberCard>(MemberCard.class);
+	}
+	
+	@Bean(name = PREFIX + "userDao")
+	public DomainObjectDao<User> generateUser() {
+		return new BaseHibernateDaoSupport<User>(User.class);
+	}
+	
+	@Bean(name = PREFIX + "userBillDao")
+	public DomainObjectDao<UserBill> generateUserBill() {
+		return new BaseHibernateDaoSupport<UserBill>(UserBill.class);
+	}
+	
+	@Bean(name = PREFIX + "userBillApplyDao")
+	public DomainObjectDao<UserBillApply> generateUserBillApply() {
+		return new BaseHibernateDaoSupport<UserBillApply>(UserBillApply.class);
+	}
+	
+	@Bean(name = PREFIX + "goodsBillDao")
+	public DomainObjectDao<GoodsBill> generateGoodsBill() {
+		return new BaseHibernateDaoSupport<GoodsBill>(GoodsBill.class);
+	}
+	
+	@Bean(name = PREFIX + "goodsBillDetailDao")
+	public DomainObjectDao<GoodsBillDetail> generateGoodsBillDetail() {
+		return new BaseHibernateDaoSupport<GoodsBillDetail>(GoodsBillDetail.class);
+	}
+	
+	@Bean(name = PREFIX + "rptSalesByGoodsDao")
+	public DomainObjectDao<RptSalesByGoods> generateRptSalesByGoods() {
+		return new BaseHibernateDaoSupport<RptSalesByGoods>(RptSalesByGoods.class);
+	}
+	
+	@Bean(name = PREFIX + "rptSalesByPayTypeDao")
+	public DomainObjectDao<RptSalesByPayType> generateRptSalesByPayType() {
+		return new BaseHibernateDaoSupport<RptSalesByPayType>(RptSalesByPayType.class);
+	}
+	
+	@Bean(name = PREFIX + "rptSalesByTradeTypeDao")
+	public DomainObjectDao<RptSalesByTradeType> generateRptSalesByTradeType() {
+		return new BaseHibernateDaoSupport<RptSalesByTradeType>(RptSalesByTradeType.class);
+	}
+	
+	@Bean(name = PREFIX + "smsVerifyDao")
+	public DomainObjectDao<SmsVerify> generateSmsVerify() {
+		return new BaseHibernateDaoSupport<SmsVerify>(SmsVerify.class);
+	}
+	
+	@Bean(name = PREFIX + "orderDao")
+	public DomainObjectDao<Order> generateOrder() {
+		return new BaseHibernateDaoSupport<Order>(Order.class);
+	}
+	
+	@Bean(name = PREFIX + "orderServiceDao")
+	public DomainObjectDao<OrderService> generateOrderService() {
+		return new BaseHibernateDaoSupport<OrderService>(OrderService.class);
+	}
+	
+	@Bean(name = PREFIX + "userAttrDao")
+	public DomainObjectDao<UserAttr> generateUserAttrDao() {
+		return new BaseHibernateDaoSupport<UserAttr>(UserAttr.class);
+	}
+	
+	@Bean(name = PREFIX + "userGoodsOrderDao")
+	public DomainObjectDao<UserGoodsOrder> generateUserGoodsOrderDao() {
+		return new BaseHibernateDaoSupport<UserGoodsOrder>(UserGoodsOrder.class);
+	}
+	
+	@Bean(name = PREFIX + "cardNoDao")
+	public DomainObjectDao<CardNo> generateCardNoDao() {
+		return new BaseHibernateDaoSupport<CardNo>(CardNo.class);
+	}
+	
+	@Bean(name = PREFIX + "tradeLockDao")
+	public DomainObjectDao<TradeLock> generateTradeLockDao() {
+		return new BaseHibernateDaoSupport<TradeLock>(TradeLock.class);
+	}
+	
+	@Bean(name = PREFIX + "goodsRefTypeDao")
+	public DomainObjectDao<GoodsRefType> generateGoodsRefTypeDao() {
+		return new BaseHibernateDaoSupport<GoodsRefType>(GoodsRefType.class);
+	}
+}

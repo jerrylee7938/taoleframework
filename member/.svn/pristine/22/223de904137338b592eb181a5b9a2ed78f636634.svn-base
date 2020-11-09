@@ -1,0 +1,14 @@
+package com.taole.member.service.api;
+
+import com.alibaba.fastjson.JSONObject;
+
+public class Test {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+
+		JSONObject shopinJsonObject = new JSONObject();
+		System.out.println(shopinJsonObject.get("aa"));
+	}
+
+}

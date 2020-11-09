@@ -1,0 +1,115 @@
+/**
+ * Project:member
+ * File:FooCondition.java 
+ * Copyright 2014-2016 Bei Jing Yi Sheng Jia Technology Development Co., Ltd. All rights reserved.
+ */
+package com.taole.member.condition;
+
+import io.swagger.annotations.ApiModelProperty;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.DetachedCriteria;
+import org.hibernate.criterion.MatchMode;
+import org.hibernate.criterion.Restrictions;
+
+import com.taole.framework.dao.hibernate.HibernateCondition;
+
+public class ShopInfoCondition implements HibernateCondition {
+
+	private String name;
+
+	private String province;
+
+	private String city;
+	
+	private String status;
+	
+	private String[] ids;
+	private String id;
+
+	public String getId() {
+		return id;
+	}
+
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+
+	public String getName() {
+		return name;
+	}
+
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+
+	public String getProvince() {
+		return province;
+	}
+
+
+	public void setProvince(String province) {
+		this.province = province;
+	}
+
+
+	public String getCity() {
+		return city;
+	}
+
+
+	public void setCity(String city) {
+		this.city = city;
+	}
+
+
+	public String getStatus() {
+		return status;
+	}
+
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+
+	public String[] getIds() {
+		return ids;
+	}
+
+
+	public void setIds(String[] ids) {
+		this.ids = ids;
+	}
+
+
+	@Override
+	public void populateDetachedCriteria(DetachedCriteria criteria) {
+		if (StringUtils.isNotBlank(name)) {
+			criteria.add(Restrictions.ilike("name", name, MatchMode.ANYWHERE));
+		}
+		
+		if (StringUtils.isNotBlank(id)) {
+			criteria.add(Restrictions.eq("shopId", id));
+		}
+		if (StringUtils.isNotBlank(province)) {
+			criteria.add(Restrictions.eq("province", province));
+		}
+		if (StringUtils.isNotBlank(city)) {
+			criteria.add(Restrictions.eq("city", city));
+		}
+		
+		if (StringUtils.isNotBlank(status)) {
+			criteria.add(Restrictions.eq("status", status));
+		}
+		
+		if (ids!=null && ids.length>0) {
+			criteria.add(Restrictions.in("shopId", ids));
+		}
+	}
+
+}

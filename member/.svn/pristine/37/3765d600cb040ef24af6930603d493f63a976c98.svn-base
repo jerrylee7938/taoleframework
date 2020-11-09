@@ -1,0 +1,43 @@
+package com.taole.member.sql;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.taole.member.condition.ShopGoodsCondition;
+
+public class ShopGoodsSql {
+
+	public static String shopGoodsList(ShopGoodsCondition condition){
+		
+		String sql = "select gi.goods_id,gi.`name`,gi.sale_money,gi.image,gi.description "
+				+ "from shop_store_set sss, goods_info gi "
+				+ "where sss.object_id = gi.goods_id ";
+		
+		sql = addCondition(sql, condition);
+		
+		return sql;
+	}
+	
+	public static String addCondition(String sql, ShopGoodsCondition condition) {
+		String conditionSql = "";
+
+		if (StringUtils.isNotBlank(condition.getShopId())) {
+			conditionSql = conditionSql + " and sss.shop_id ='" + condition.getShopId() + "' ";
+		}
+		if (StringUtils.isNotBlank(condition.getCatalogId())) {
+			conditionSql = conditionSql + " and gi.catalog_id ='" + condition.getCatalogId() + "' ";
+		}
+		
+		if (StringUtils.isNotBlank(condition.getType())) {
+			conditionSql = conditionSql + " and sss.object_type = '" + condition.getType() + "' ";
+		}
+
+		if (StringUtils.isNotBlank(conditionSql)) {
+			if (sql.indexOf("where") <= 0) {// 没有where关键字
+				sql = sql + " where " + conditionSql.substring(4, conditionSql.length());
+			} else {
+				sql = sql + conditionSql;
+			}
+		}
+		return sql;
+	}
+}

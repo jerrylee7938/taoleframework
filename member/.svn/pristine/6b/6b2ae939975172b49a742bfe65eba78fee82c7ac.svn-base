@@ -1,0 +1,31 @@
+package com.taole.member.domain.param.MemberCardApi;
+
+import io.swagger.annotations.ApiModelProperty;
+
+public class UserMemberCardForRecharge {
+
+	public class MemberCardApiUserMemberCardRsp{
+		
+		@ApiModelProperty(value = "用户会员卡ID")
+		private String userCardId;
+		
+		@ApiModelProperty(value = "用户会员卡号")
+		private String userCardNo;
+
+		public String getUserCardId() {
+			return userCardId;
+		}
+
+		public void setUserCardId(String userCardId) {
+			this.userCardId = userCardId;
+		}
+
+		public String getUserCardNo() {
+			return userCardNo;
+		}
+
+		public void setUserCardNo(String userCardNo) {
+			this.userCardNo = userCardNo;
+		}
+	}
+}

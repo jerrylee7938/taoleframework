@@ -1,0 +1,208 @@
+package com.taole.member.utils;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.member.ProjectConfig;
+import com.taole.member.config.CommonConfig;
+import com.taole.member.config.MemberConfig;
+import com.taole.toolkit.util.HttpClientUtils;
+
+@Component
+public class RestClientUtil {
+	private static final Logger logger = LoggerFactory.getLogger(RestClientUtil.class);
+	
+	@Autowired
+	private CommonConfig commonConfig;
+	
+	@Autowired
+	private MemberConfig memberConfig;
+	
+	private static String portalDictRetrieveUrl;
+	private static String getUserInfoUrl;
+	
+	//portal系统创建短信记录接口地址
+	private static String createPortalSmsInfoUrl;
+	
+	//获取微信用户信息接口
+	private static String wxUserInfoUrl;
+	//微信appid
+	private static String wxAppid;
+	//微信密钥
+	private static String wxSecret;
+	
+	@PostConstruct
+	public void init() {
+		portalDictRetrieveUrl = commonConfig.getPortalDictRetrieve();
+		getUserInfoUrl = commonConfig.getGetUserInfoUrl();
+		createPortalSmsInfoUrl = memberConfig.getCreateSmsPoralInfoUrl();
+		wxUserInfoUrl = memberConfig.getWxUserInfoUrl();
+		wxAppid = memberConfig.getWxAppid();
+		wxSecret = memberConfig.getWxSecret();
+	}
+	
+	/**
+	 * 获取portal字段详情
+	 */
+	public static JSONObject getPortalDictRetrieve(String dictId) {
+		String url = String.format(portalDictRetrieveUrl, dictId);
+		logger.info(ProjectConfig.PREFIX + "getPortalDictRetrieve:{}", url);
+		try {
+			if (StringUtils.isNotEmpty(url)) {
+				
+				String result = HttpClientUtils.getInstance().httpGet(url);
+				
+				JSONObject dictObj = JSON.parseObject(result);
+				
+				return dictObj;
+			}
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "properties:", e);
+		}
+		return null;
+	}
+	
+	/**
+	 * 获取操作人信息
+	 * @param 
+	 * @return
+	 */
+	public static JSONObject getUserInfo(String userId) {
+		String url = String.format(getUserInfoUrl, userId);
+		logger.info(ProjectConfig.PREFIX + "getOrderInfo:{}", url);
+	
+		if (StringUtils.isNotEmpty(url)) {
+			try {
+				String result = HttpClientUtils.getInstance().httpGet(url);
+				JSONObject resultJo = JSON.parseObject(result);
+				if (1 == resultJo.getInteger("code")) {
+					return resultJo.getJSONObject("result");
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * 获取taole短信发送token
+	 * @return
+	 * @throws JSONException
+	 */
+	public static JSONObject getTaoleSmsToken(String url, org.json.JSONObject getTokenParams) throws JSONException{
+		
+		logger.info(ProjectConfig.PREFIX + "getTaoleSmsToken:{}", url);
+		logger.info(ProjectConfig.PREFIX + "getTaoleSmsToken:param{}", getTokenParams.toString());
+		
+		if (!StringUtils.isEmpty(url)) {
+			
+			String getTokenRresult = HttpClientUtils.getInstance().httpPost(url, getTokenParams);
+			
+			logger.info(ProjectConfig.PREFIX + "getTaoleSmsToken:{}", getTokenRresult);
+			
+			JSONObject tokenObject = JSON.parseObject(getTokenRresult);
+			if(tokenObject.getString("result_code").equals("100")){
+				return tokenObject.getJSONObject("result_object");
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * 创建短信发送记录
+	 * @param mobileNum 接收手机号
+	 * @param content   短信内容
+	 * @param senderId  触发发送短信应用ID
+	 * @param sendTime  发送时间
+	 * @param status    发送状态
+	 * @param type      发送类型
+	 * @param mtType    mt类型
+	 * @throws JSONException 
+	 */
+	public static void createSmsForPortal(String mobileNum, String content,
+			String senderId, String sendTime, String status, String type,
+			String mtType, String description) throws JSONException {
+		
+		org.json.JSONObject params = new org.json.JSONObject();
+		params.put("senderId", senderId);
+		params.put("content", content);
+		params.put("mobileNum", mobileNum);
+		params.put("sendTime", sendTime);
+		params.put("status", status);
+		params.put("channel", "中科讯博短信通道");
+		params.put("type", type);
+		params.put("mtType", mtType);
+		params.put("description", description);
+		
+		logger.info("create portal sms params : " + params.toString());
+		
+		HttpClientUtils.getInstance().httpPost(createPortalSmsInfoUrl, params);
+	}
+	
+	/*
+	 * 获取微信用户信息
+	 */
+	public static String getWxUserInfo(String code, String encryptedData, String iv){
+		
+		try {
+			org.json.JSONObject wxUserInfoParams = new org.json.JSONObject();
+			wxUserInfoParams.put("appId", wxAppid);
+			wxUserInfoParams.put("secret", wxSecret);
+			wxUserInfoParams.put("code", code);
+			wxUserInfoParams.put("encryptedData", encryptedData);
+			wxUserInfoParams.put("iv", iv);
+			
+			logger.info(ProjectConfig.PREFIX + "getWxUserInfo:{}", wxUserInfoUrl);
+			logger.info(ProjectConfig.PREFIX + "getWxUserInfo param{}", wxUserInfoParams.toString());
+			
+			String result = HttpClientUtils.getInstance().httpPost(wxUserInfoUrl, wxUserInfoParams);
+			logger.info(ProjectConfig.PREFIX + "getWxUserInfo:{}", result);
+			
+			JSONObject resultObj = JSON.parseObject(result);
+			
+			if(!resultObj.getString("result_code").equals("100")){
+				logger.info("获取微信用户信息失败："+resultObj.getString("result_desc"));
+				return null;
+			}
+			
+			return resultObj.getJSONObject("result_object").getString("phoneNumber");
+		} catch (Exception e) {
+			logger.info("获取微信用户信息失败："+e.getMessage());
+			return null;
+		}
+	}
+	
+	public static JSONObject createPayOrder(String openId, String orderId, 
+			Double amount, String extraInfo) throws JSONException{
+		
+		org.json.JSONObject paramJsonObject = new org.json.JSONObject();
+		paramJsonObject.put("orderId", orderId);
+		paramJsonObject.put("money", amount);
+		paramJsonObject.put("openId", openId);
+		paramJsonObject.put("extraInfo", extraInfo);
+		
+		logger.info(ProjectConfig.PREFIX + "createPayOrder:{}", wxUserInfoUrl);
+		logger.info(ProjectConfig.PREFIX + "createPayOrder param{}", paramJsonObject.toString());
+		
+		String result = HttpClientUtils.getInstance().httpPost("http://39.104.176.177:8060/taole-pay-service/service/rest/taole-pay.DuoPayApi/collection/createOrder", paramJsonObject);
+		logger.info(ProjectConfig.PREFIX + "createPayOrder:{}", result);
+		
+		JSONObject resultObj = JSON.parseObject(result);
+		
+		if(!resultObj.getString("code").equals("1")){
+			logger.info("创建支付订单失败："+resultObj.getString("description"));
+			throw new RuntimeException(resultObj.getString("description"));
+		}
+		
+		return resultObj.getJSONObject("result");
+	}
+}	

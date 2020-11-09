@@ -1,0 +1,262 @@
+package com.taole.member.service.api;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+
+import java.util.Date;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.auth0.jwt.JWTExpiredException;
+import com.taole.framework.rest.RestUrlRuler;
+import com.taole.framework.rest.ReturnResult;
+import com.taole.framework.service.ServiceResult;
+import com.taole.member.Constants;
+import com.taole.member.Constants.CardType;
+import com.taole.member.Constants.InOutType;
+import com.taole.member.Constants.MemberCardStatus;
+import com.taole.member.Constants.PayType;
+import com.taole.member.Constants.TransactionType;
+import com.taole.member.Constants.UnitType;
+import com.taole.member.Constants.UserGoodsOrderStatus;
+import com.taole.member.ProjectConfig;
+import com.taole.member.condition.UserBillCondition;
+import com.taole.member.domain.CardInfo;
+import com.taole.member.domain.MemberCard;
+import com.taole.member.domain.ShopInfo;
+import com.taole.member.domain.UserBill;
+import com.taole.member.domain.UserGoodsOrder;
+import com.taole.member.manager.CardInfoManager;
+import com.taole.member.manager.MemberCardManager;
+import com.taole.member.manager.ShopInfoManager;
+import com.taole.member.manager.UserBillManager;
+import com.taole.member.manager.UserGoodsOrderManager;
+import com.taole.member.utils.TokenUtil;
+import com.taole.member.utils.UserSwipingCardUtil;
+import com.taole.toolkit.util.DateStyle;
+import com.taole.toolkit.util.DateUtil;
+
+@Controller
+@Api(tags = { "店管家服务接口" })
+@RequestMapping(value = RestUrlRuler.REST_ROOT + "/" + ProjectConfig.PREFIX + "HousekeeperApi")
+public class HousekeeperApi {
+	private Logger logger = LoggerFactory.getLogger(HousekeeperApi.class);
+	
+	@Autowired
+	private UserGoodsOrderManager userGoodsOrderManager;
+	
+	@Autowired
+	private MemberCardManager memberCardManager;
+	
+	@Autowired
+	private CardInfoManager cardInfoManager;
+	
+	@Autowired
+	private UserBillManager userBillManager;
+	
+	@Autowired
+	private ShopInfoManager shopInfoManager;
+
+	@RequestMapping(value = "/collection/checkTicket", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "检票", httpMethod = "GET", response = ServiceResult.class)
+	public @ResponseBody Object checkTicket(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "用户订单ID", required = true) @RequestParam String userGoodsOrderId,
+			@ApiParam(value = "当前消费店铺ID", required = true) @RequestParam String shopId){
+		
+		try {
+			
+			UserGoodsOrder userGoodsOrder = userGoodsOrderManager.getUserGoodsOrder(userGoodsOrderId);
+			if(userGoodsOrder == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "没有找到对应的购票记录");
+			
+			if(!UserGoodsOrderStatus.UNUSE.equals(userGoodsOrder.getStatus()))
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "该门票已领取");
+			
+			if(StringUtils.isBlank(shopId))
+				return new ServiceResult(ReturnResult.FAILURE, "所在店铺信息获取失败请重新获取");
+			
+			ShopInfo shopInfo = shopInfoManager.getShopInfo(shopId);
+			if(shopInfo == null)
+				return new ServiceResult(ReturnResult.FAILURE, "所在店铺信息获取失败请重新获取");
+			
+			if(!shopId.equals(userGoodsOrder.getShopId()))
+				return new ServiceResult(ReturnResult.FAILURE, "该订单商品领取店铺与购买店铺不一致");
+			
+			userGoodsOrder.setStatus(UserGoodsOrderStatus.USED);
+			userGoodsOrderManager.updateUserGoodsOrder(userGoodsOrder);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "检票成功");
+		} catch (Exception e) {
+			
+			logger.error(ProjectConfig.PREFIX + "HousekeeperApi" + ".checkTicket:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "检票失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/pickUpGoods", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "取货", httpMethod = "GET", response = ServiceResult.class)
+	public @ResponseBody Object pickUpGoods(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "用户订单ID", required = true) @RequestParam String userGoodsOrderId,
+			@ApiParam(value = "当前消费店铺ID", required = true) @RequestParam String shopId){
+		
+		try {
+			UserGoodsOrder userGoodsOrder = userGoodsOrderManager.getUserGoodsOrder(userGoodsOrderId);
+			if(userGoodsOrder == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "没有找到对应的购物记录");
+			
+			if(!UserGoodsOrderStatus.UNUSE.equals(userGoodsOrder.getStatus()))
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "该记录货物已领取");
+			
+			if(StringUtils.isBlank(shopId))
+				return new ServiceResult(ReturnResult.FAILURE, "所在店铺信息获取失败请重新获取");
+			
+			ShopInfo shopInfo = shopInfoManager.getShopInfo(shopId);
+			if(shopInfo == null)
+				return new ServiceResult(ReturnResult.FAILURE, "所在店铺信息获取失败请重新获取");
+			
+			if(!shopId.equals(userGoodsOrder.getShopId()))
+				return new ServiceResult(ReturnResult.FAILURE, "该门票领取店铺与购买店铺不一致");
+			
+			userGoodsOrder.setStatus(UserGoodsOrderStatus.USED);
+			userGoodsOrderManager.updateUserGoodsOrder(userGoodsOrder);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "取货成功");
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "HousekeeperApi" + ".pickUpGoods:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "取货失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/payByCard", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "会员卡消费", httpMethod = "GET", response = ServiceResult.class)
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public @ResponseBody Object payByCard(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "刷卡次数", required = true) @RequestParam int count,
+			@ApiParam(value = "当前消费店铺ID", required = true) @RequestParam String shopId,
+			@RequestHeader("Authorization") String Authorization){
+		
+		try {
+			
+			if(StringUtils.isBlank(shopId))
+				return new ServiceResult(ReturnResult.FAILURE, "所在店铺信息获取失败请重新获取");
+			
+			ShopInfo shopInfo = shopInfoManager.getShopInfo(shopId);
+			if(shopInfo == null)
+				return new ServiceResult(ReturnResult.FAILURE, "所在店铺信息获取失败请重新获取");
+			
+			Map<String, Object> tokenMap = TokenUtil.verify(Authorization);
+			String userCardId = (String) tokenMap.get("iss");
+			
+			if(StringUtils.isBlank(UserSwipingCardUtil.get(userCardId))){
+				return new ServiceResult(ReturnResult.FAILURE, "用户会员卡二维码已使用，请刷新后再用");
+			}
+			
+			if(!Authorization.equals(UserSwipingCardUtil.get(userCardId))){
+				return new ServiceResult(ReturnResult.FAILURE, "用户会员卡二维码已使用，请刷新后再用");
+			}
+			
+			if(count <= 0)
+				return new ServiceResult(ReturnResult.FAILURE, "请输入正确的刷卡次数！");
+			
+			MemberCard memberCard = memberCardManager.getMemberCard(userCardId);
+			if(memberCard == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "用户会员卡信息不存在");
+			
+			if(!MemberCardStatus.ACTIVE.equals(memberCard.getStatus()) 
+					&& !MemberCardStatus.TO_BE_ACTIVE.equals(memberCard.getStatus()))
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "只能消费待激活或已激活的会员卡");
+			
+			if(memberCard.getDeadline() != null && MemberCardStatus.ACTIVE.equals(memberCard.getStatus()) && 
+					DateUtil.compare(new Date(), memberCard.getDeadline()) >= 0)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "该会员卡已过期");
+			
+			CardInfo cardInfo = cardInfoManager.getCardInfo(memberCard.getCardId());
+			if(CardType.TIMES_COUNT.equals(cardInfo.getCardType())){//计次卡
+				int balanceNum = userBillManager.getBalanceNum(userCardId);
+				if(balanceNum < count){
+					return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "该会员卡可刷卡次数不足");
+				}
+			}else {
+				if(count != 1 || todayCardPayNum(userCardId) > 0){
+					return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "该会员卡为期限卡，当天只能刷一次卡");
+				}
+			}
+			
+			// 建立消费记录对象
+			String billNo = userBillManager.getUserBillNo(Constants.ActionType.CONSUME);
+			UserBill userBill = new UserBill();
+			userBill.setUserBillId(billNo);
+			userBill.setUserBillNo(billNo);
+			userBill.setUserId(memberCard.getUserId());
+			userBill.setUserCardId(memberCard.getUserCardId());
+			userBill.setConsumeMoney(0D);
+			if(CardType.TIMES_COUNT.equals(cardInfo.getCardType())){//计次卡
+				int balanceNum = userBillManager.getBalanceNum(userCardId);
+				userBill.setSwipeAmount(count);
+				userBill.setBalanceNum(balanceNum - count);
+			}else{
+				userBill.setSwipeAmount(0);
+				userBill.setBalanceNum(0);
+			}
+			userBill.setConsumeUnit(UnitType.YUAN);
+			userBill.setActionTypeId(TransactionType.HK);
+			userBill.setInOutType(InOutType.OUT);
+			userBill.setBalance(0.00);
+			userBill.setPayType(PayType.WX);// 支付类型不能为空
+			userBill.setOperatorShopId(shopId);
+			userBill.setOperateTime(new Date());
+			userBill.setDescription("微信小程序刷卡");
+			userBillManager.createUserBill(userBill);
+			
+			if (memberCardManager.isFirstSwipe(memberCard)) {
+				// 如果是第一次刷卡需要激活卡
+				memberCard.setStatus(Constants.MemberCardStatus.ACTIVE);
+				memberCard.setApproverTime(new Date());
+				memberCard.setDeadline(memberCardManager.getDeadDate(memberCard, null));
+				memberCardManager.updateMemberCard(memberCard);
+			}
+			
+			UserSwipingCardUtil.delete(userCardId);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "会员卡消费成功");
+		} catch (JWTExpiredException je){
+			return new ServiceResult(ReturnResult.FAILURE, "用户会员卡二维码已过期，请刷新后再用");
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "HousekeeperApi" + ".payByCard:{}", e);
+			throw new RuntimeException();
+		}
+	}
+	
+	
+	/**
+	 * 获取会员卡今天消费次数
+	 * @param userCardId
+	 * @return
+	 */
+	private int todayCardPayNum(String userCardId){
+		
+		UserBillCondition userBillCondition = new UserBillCondition();
+		userBillCondition.setUserCardId(userCardId);
+		String nowDate = DateUtil.DateToString(new Date(), DateStyle.YYYY_MM_DD);
+		userBillCondition.setStartTime(DateUtil.StringToDate(nowDate + " 00:00:00"));
+		userBillCondition.setEndTime(DateUtil.StringToDate(nowDate + " 23:59:59"));
+		userBillCondition.setActionTypeId(TransactionType.XF);
+		
+		return userBillManager.count(userBillCondition);
+	}
+}

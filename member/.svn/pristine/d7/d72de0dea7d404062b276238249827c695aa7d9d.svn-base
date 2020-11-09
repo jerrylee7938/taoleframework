@@ -1,0 +1,294 @@
+package com.taole.member.manager;
+
+import java.sql.SQLException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.HibernateException;
+import org.hibernate.SQLQuery;
+import org.hibernate.Session;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.hibernate3.HibernateCallback;
+import org.springframework.orm.hibernate3.support.HibernateDaoSupport;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.framework.dao.DomainObjectDao;
+import com.taole.member.Constants;
+import com.taole.member.Constants.ActionType;
+import com.taole.member.Constants.GoodsType;
+import com.taole.member.Constants.InOutType;
+import com.taole.member.Constants.OrderType;
+import com.taole.member.Constants.PayType;
+import com.taole.member.Constants.SaleObjectType;
+import com.taole.member.Constants.ShopBillType;
+import com.taole.member.Constants.UnitType;
+import com.taole.member.Constants.UserGoodsOrderStatus;
+import com.taole.member.ProjectConfig;
+import com.taole.member.condition.ShopGoodsCondition;
+import com.taole.member.config.MemberConfig;
+import com.taole.member.domain.GoodsBill;
+import com.taole.member.domain.GoodsBillDetail;
+import com.taole.member.domain.GoodsInfo;
+import com.taole.member.domain.Order;
+import com.taole.member.domain.OrderService;
+import com.taole.member.domain.ShopStoreSet;
+import com.taole.member.domain.UserBill;
+import com.taole.member.domain.UserGoodsOrder;
+import com.taole.member.sql.CommonSql;
+import com.taole.member.sql.ShopGoodsSql;
+import com.taole.toolkit.dict.manager.DictionaryManager;
+import com.taole.toolkit.dict.manager.DictionaryManager.DictNode;
+import com.taole.toolkit.util.DateStyle;
+import com.taole.toolkit.util.DateUtil;
+import com.taole.toolkit.util.MathUtil;
+
+@Component
+public class ShopGoodsManager {
+
+	@Resource(name = ProjectConfig.PREFIX + "shopStoreSetDao")
+	DomainObjectDao<ShopStoreSet> shopStoreSetDao;
+	
+	@Autowired
+	private DictionaryManager dictionaryManager;
+	
+	@Autowired
+	private MemberConfig memberConfig;
+	
+	@Autowired
+	private OrderManager orderManager;
+	
+	@Autowired
+	private GoodsBillManager goodsBillManager;
+	
+	@Autowired
+	private OrderServiceManager orderServiceManager;
+	
+	@Autowired
+	private UserBillManager userBillManager;
+	
+	@Autowired
+	private GoodsInfoManager goodsInfoManager;
+	
+	@Autowired
+	private GoodsBillDetailManager goodsBillDetailManager;
+	
+	@Autowired
+	private UserGoodsOrderManager userGoodsOrderManager;
+	
+	public JSONArray shopGoodsAll(String shopId){
+		
+		Map<String, DictNode> dictNodeMap = dictionaryManager.getDictNods(GoodsType.DICTIONARY_GOODS_TYPE_CODE_ID);
+//		dictNodeMap.remove("SPL");
+		dictNodeMap.remove("MPL");
+		
+		JSONArray resultArray = new JSONArray();
+		for(Map.Entry<String, DictNode> entry : dictNodeMap.entrySet()){
+			JSONObject goodsTypeObj = new JSONObject();
+			goodsTypeObj.put("id", entry.getKey());
+			goodsTypeObj.put("name", entry.getValue().getName());
+			
+			ShopGoodsCondition condition = new ShopGoodsCondition();
+			condition.setShopId(shopId);
+			condition.setCatalogId(entry.getKey());
+			condition.setType(SaleObjectType.GOODS);
+			JSONArray shopGoodsArray = shopGoodsList(condition, 0, 0);
+			goodsTypeObj.put("goods", shopGoodsArray);
+			
+			resultArray.add(goodsTypeObj);
+		}
+		
+		return resultArray;
+	}
+	
+	public Integer shopGoodsCount(final ShopGoodsCondition condition){
+		List<?> list = ((HibernateDaoSupport) shopStoreSetDao).getHibernateTemplate().executeWithNativeSession(new HibernateCallback<List<?>>() {
+			@Override
+			public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+				String sql = ShopGoodsSql.shopGoodsList(condition);
+				sql = CommonSql.count(sql);
+				SQLQuery sqlQuery = session.createSQLQuery(sql);
+				List<?> list = sqlQuery.list();
+				return list;
+			}
+		});
+		return Integer.valueOf(list.get(0).toString());
+	}
+	
+	public JSONArray shopGoodsList(final ShopGoodsCondition condition, final int start, final int limit){
+		
+		List<?> shopGoodsList = ((HibernateDaoSupport) shopStoreSetDao).getHibernateTemplate().executeWithNativeSession(new HibernateCallback<List<?>>() {
+			@Override
+			public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+				String sql = ShopGoodsSql.shopGoodsList(condition);
+				SQLQuery sqlQuery = session.createSQLQuery(sql);
+				if(limit > 0){
+					sqlQuery.setFirstResult(start);
+					sqlQuery.setMaxResults(limit);
+				}
+				List<?> list = sqlQuery.list();
+				return list;
+			}
+		});
+		
+		JSONArray resultAry = new JSONArray();
+		for(int i=0; i<shopGoodsList.size(); i++){
+			Object[] objs = (Object[]) shopGoodsList.get(i);
+			JSONObject object = new JSONObject();
+			object.put("goodsId", objs[0]);
+			object.put("goodsName", objs[1]);
+			object.put("money", objs[2]);
+			
+			String image = (String) objs[3];
+			object.put("image", StringUtils.isNotBlank(image) ? image : memberConfig.getDefaultImage());
+			object.put("description", objs[4]);
+			
+			resultAry.add(object);
+		}
+		
+		return resultAry;
+	}
+	
+	public Integer shopTicketCount(final ShopGoodsCondition condition){
+		List<?> list = ((HibernateDaoSupport) shopStoreSetDao).getHibernateTemplate().executeWithNativeSession(new HibernateCallback<List<?>>() {
+			@Override
+			public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+				String sql = ShopGoodsSql.shopTicketList(condition);
+				sql = CommonSql.count(sql);
+				SQLQuery sqlQuery = session.createSQLQuery(sql);
+				List<?> list = sqlQuery.list();
+				return list;
+			}
+		});
+		return Integer.valueOf(list.get(0).toString());
+	}
+	
+	public JSONArray shopTickeyList(final ShopGoodsCondition condition, final int start, final int limit){
+		
+		List<?> shopGoodsList = ((HibernateDaoSupport) shopStoreSetDao).getHibernateTemplate().executeWithNativeSession(new HibernateCallback<List<?>>() {
+			@Override
+			public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+				String sql = ShopGoodsSql.shopTicketList(condition);
+				SQLQuery sqlQuery = session.createSQLQuery(sql);
+				sqlQuery.setFirstResult(start);
+				sqlQuery.setMaxResults(limit);
+				List<?> list = sqlQuery.list();
+				return list;
+			}
+		});
+		
+		JSONArray resultAry = new JSONArray();
+		for(int i=0; i<shopGoodsList.size(); i++){
+			Object[] objs = (Object[]) shopGoodsList.get(i);
+			JSONObject object = new JSONObject();
+			object.put("goodsId", objs[0]);
+			object.put("goodsName", objs[1]);
+			object.put("money", objs[2]);
+			
+			String image = (String) objs[3];
+			object.put("image", StringUtils.isNotBlank(image) ? image : memberConfig.getDefaultImage());
+			object.put("description", objs[4]);
+			
+			resultAry.add(object);
+		}
+		
+		return resultAry;
+	}
+	
+	/**
+	 * 系统将门票和商品都视为商品所以两者购买成功走同一套流程
+	 * @param orderId 订单id
+	 * 购买完成需要操作goods_bill、goods_bill_detail、user_bill、user_goods_order表数据
+	 */
+	@Transactional
+	public void buySuccess(String orderId){
+		
+		Order order = orderManager.getOrder(orderId);
+		
+		String billNo = Constants.TransactionType.XF + DateUtil.DateToString(new Date(), DateStyle.YYYYMMDDHHMMSS);
+		
+		// 建立出库单对象
+		GoodsBill goodsBill = new GoodsBill();
+		goodsBill.setShopBillNo(billNo);
+		goodsBill.setShopBillType(ShopBillType.SALEOUT);
+		goodsBill.setInOutType(InOutType.OUT);
+		goodsBill.setShopId(order.getShopId());
+		goodsBill.setDescription("小程序购买");
+		String shopBillId = goodsBillManager.createGoodsBill(goodsBill);
+		
+		//新增出库单详情信息
+		List<OrderService> orderServices = orderServiceManager.list(orderId);
+		for(OrderService os : orderServices){
+			GoodsBillDetail goodsBillDetail = new GoodsBillDetail();
+			goodsBillDetail.setShopBillId(shopBillId);
+			goodsBillDetail.setGoodsId(os.getServiceId());
+			goodsBillDetail.setAmount(Double.valueOf(String.valueOf(os.getNum())));
+			goodsBillDetail.setPrice(os.getMoney());
+			GoodsInfo goodsInfo = new GoodsInfo();
+			goodsInfo = goodsInfoManager.getGoodsInfo(os.getServiceId());
+			goodsBillDetail.setUnit(goodsInfo.getUnit());
+			goodsBillDetail.setShopId(order.getShopId());
+			Double balance = goodsBillDetailManager.getGoodsBalanceNum(goodsBillDetail.getShopId(),
+					goodsBillDetail.getGoodsId());
+			goodsBillDetail.setBalance(MathUtil.sub(balance, os.getNum()));
+			goodsBillDetailManager.createGoodsBillDetail(goodsBillDetail);
+		}
+		
+		// 建立消费记录对象
+		UserBill userBill = new UserBill();
+		userBill.setUserBillNo(billNo);
+		userBill.setShopBillId(shopBillId);
+		userBill.setUserId(order.getAccountId());
+		userBill.setUserCardId("");//应该不填，待确认
+		userBill.setConsumeMoney(order.getAmount());
+		userBill.setSwipeAmount(0);
+		userBill.setConsumeUnit(UnitType.YUAN);
+		userBill.setActionTypeId(ActionType.CONSUME);
+		userBill.setInOutType(InOutType.OUT);
+		userBill.setBalance(0.00);
+		userBill.setBalanceNum(0);//应该不填，待确认
+		userBill.setPayType(PayType.WX);// 支付类型不能为空
+		userBill.setDescription("小程序购买");
+		userBill.setOperateTime(new Date());
+		userBill.setOperatorShopId(order.getShopId());
+		String userBillId = userBillManager.createUserBill(userBill);
+		
+		if(OrderType.GOODS.equals(order.getType())){
+			UserGoodsOrder userGoodsOrder = new UserGoodsOrder();
+			userGoodsOrder.setUserBillId(userBillId);
+			userGoodsOrder.setShopBillId(shopBillId);
+			userGoodsOrder.setUserId(order.getAccountId());
+			userGoodsOrder.setShopId(order.getShopId());
+			userGoodsOrder.setOrderType(order.getType());
+			userGoodsOrder.setStatus(UserGoodsOrderStatus.UNUSE);
+			userGoodsOrder.setOrderTime(new Date());
+			userGoodsOrderManager.createUserGoodsOrder(userGoodsOrder);
+		}else {
+			buyTicketSuccess(userBillId, shopBillId, order, orderServices);
+		}
+	}
+	
+	public void buyTicketSuccess(String userBillId, String shopBillId, Order order, List<OrderService> orderServices){
+		
+		for(OrderService os : orderServices){
+			for(int i=0; i<os.getNum(); i++){
+				UserGoodsOrder userGoodsOrder = new UserGoodsOrder();
+				userGoodsOrder.setUserBillId(userBillId);
+				userGoodsOrder.setShopBillId(shopBillId);
+				userGoodsOrder.setUserId(order.getAccountId());
+				userGoodsOrder.setShopId(order.getShopId());
+				userGoodsOrder.setGoodsIds(os.getServiceId());
+				userGoodsOrder.setOrderType(order.getType());
+				userGoodsOrder.setStatus(UserGoodsOrderStatus.UNUSE);
+				userGoodsOrder.setOrderTime(new Date());
+				userGoodsOrderManager.createUserGoodsOrder(userGoodsOrder);
+			}
+		}
+	}
+}

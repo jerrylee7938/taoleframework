@@ -1,0 +1,139 @@
+/**
+ * Project:member
+ * File:membergoodsManager.java 
+ * Copyright 2014-2016 Bei Jing Yi Sheng Jia Technology Development Co., Ltd. All rights reserved.
+ */
+package com.taole.member.manager;
+
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.framework.annotation.DomainEngine;
+import com.taole.framework.dao.DomainObjectDao;
+import com.taole.framework.dao.util.PaginationSupport;
+import com.taole.framework.dao.util.Range;
+import com.taole.framework.dao.util.Sorter;
+import com.taole.framework.events.EventMethod;
+import com.taole.framework.util.SerializableJSONTransformer;
+import com.taole.framework.util.UUID;
+import com.taole.member.ProjectConfig;
+import com.taole.member.Constants.GoodsType;
+import com.taole.member.Constants.UnitType;
+import com.taole.member.condition.GoodsBillDetailCondition;
+import com.taole.member.condition.GoodsInfoCondition;
+import com.taole.member.condition.MemberCardCondition;
+import com.taole.member.condition.ShopInfoCondition;
+import com.taole.member.domain.GoodsInfo;
+import com.taole.member.domain.MemberCard;
+import com.taole.member.domain.ShopInfo;
+import com.taole.member.domain.param.GoodsInfoService.QueryForSale;
+import com.taole.toolkit.dict.manager.DictionaryManager;
+import com.taole.toolkit.util.ArrayListUtil;
+
+/**
+ * @author  Generator
+ * @version $Id$
+ */
+@DomainEngine(types = GoodsInfo.class)
+@Transactional(readOnly = true)
+public class GoodsInfoManager {
+	
+	@Resource(name = ProjectConfig.PREFIX + "goodsInfoDao")
+	DomainObjectDao<GoodsInfo> goodsInfoDao;
+	@Autowired
+	private DictionaryManager dictionaryManager;
+	
+	@DomainEngine.C
+	@EventMethod
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public String createGoodsInfo(GoodsInfo goodsInfo) {
+		if(StringUtils.isBlank(goodsInfo.getGoodsId()))
+			goodsInfo.setGoodsId(UUID.generateUUID());
+		
+		goodsInfo.setCreateTime(new Date());
+		return goodsInfoDao.createObject(goodsInfo);
+	}
+
+	@DomainEngine.U
+	@EventMethod
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public void updateGoodsInfo(GoodsInfo goodsInfo) {
+		goodsInfo.setUpdateTime(new Date());
+		goodsInfoDao.updateObject(goodsInfo);
+	}
+	
+	@DomainEngine.D
+	@EventMethod
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public void deleteGoodsInfo(GoodsInfo goodsInfo) {
+		goodsInfoDao.deleteObject(goodsInfo);
+	}
+	
+	@DomainEngine.R
+	public GoodsInfo getGoodsInfo(String id) {
+		return goodsInfoDao.loadObject(id);
+	}
+	
+	public List<GoodsInfo> list(GoodsInfoCondition condition) {
+		return goodsInfoDao.listByCondition(condition);
+	}
+	public List<GoodsInfo> list(GoodsInfoCondition condition, Sorter sorter, int limit) {
+		return goodsInfoDao.listByCondition(condition, sorter, limit);
+	}
+	
+	public PaginationSupport<GoodsInfo> search(GoodsInfoCondition condition, Range range, Sorter sroter) {
+		return goodsInfoDao.search(condition, range, sroter);
+	}
+	
+	public int count(GoodsInfoCondition condition){
+		return goodsInfoDao.countByCondition(condition);
+	}
+	public GoodsInfo findByCondition(GoodsInfoCondition condition) {
+		List<GoodsInfo> list = goodsInfoDao.listByCondition(condition, 1);
+		if (list.size() == 0) {
+			return null;
+		} else {
+			return list.get(0);
+		}
+	}
+	
+	
+	public Object searchToJson(GoodsInfoCondition condition, Range range, Sorter sroter){
+		PaginationSupport<GoodsInfo> ps = search(condition, range, sroter);
+		JSONArray resultAry = new JSONArray();
+		for(GoodsInfo goodsInfo : ps.getItems()){
+			JSONObject obj = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(goodsInfo);
+			obj.put("goodsType", dictionaryManager.getDictName(GoodsType.DICTIONARY_GOODS_TYPE_CODE_ID, goodsInfo.getCatalogId()));
+			obj.put("unitName", dictionaryManager.getDictName(UnitType.DICTIONARY_UNIT_TYPE_CODE_ID, goodsInfo.getUnit()));
+			resultAry.add(obj);
+		}
+		return resultAry;
+	}
+	
+	/**
+	 * 获取商品表最大code
+	 * 
+	 * @return
+	 *//*
+	public int getGoodsCode() {
+		int code = 0;
+		GoodsInfoCondition condition = new GoodsInfoCondition();
+		List<GoodsInfo> list = this.list(condition, new Sorter().desc("goodsCode"), 1);
+		if (!ArrayListUtil.isEmpty(list)) {
+			GoodsInfo goodsInfo = list.get(0);
+			if (null != goodsInfo  && null != goodsInfo.getGoodsCode()) {
+				code = goodsInfo.getGoodsCode();
+			}
+		}
+		return code;
+	}*/
+	
+}

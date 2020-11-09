@@ -1,0 +1,52 @@
+package com.taole.member.sql;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.taole.member.condition.ShopCardCondition;
+
+public class ShopCardSql {
+
+	public static String shopGoodsList(ShopCardCondition condition){
+		
+		String sql = "select ci.card_id,ci.card_name,ci.`code`,ci.money,ci.card_image,ci.period_of_validity,ci.image_back,ci.begin_time,ci.end_time "
+				+ "from card_info ci, shop_store_set sss "
+				+ "where ci.card_id = sss.object_id and sss.object_type = '1' and ci.status != 0 and ci.online_show = '1' ";
+		
+		sql = addCondition(sql, condition);
+		
+		return sql;
+	}
+	
+	public static String shopCardListForRecharge(ShopCardCondition condition){
+		String sql = "select ci.card_id,ci.card_name,ci.`code`,ci.money,ci.card_image "
+				+ "from card_info ci, shop_store_set sss "
+				+ "where ci.card_id = sss.object_id "
+				+ "and sss.object_type = '1' "
+				+ "and ci.status != 0 "
+				+ "and ci.online_recharge = '1' ";
+		
+		sql = addCondition(sql, condition);
+		
+		return sql;
+	}
+	
+	public static String addCondition(String sql, ShopCardCondition condition) {
+		String conditionSql = "";
+
+		if (StringUtils.isNotBlank(condition.getShopId())) {
+			conditionSql = conditionSql + " and sss.shop_id ='" + condition.getShopId() + "' ";
+		}
+		if (StringUtils.isNotBlank(condition.getCardType())) {
+			conditionSql = conditionSql + " and ci.card_type ='" + condition.getCardType() + "' ";
+		}
+
+		if (StringUtils.isNotBlank(conditionSql)) {
+			if (sql.indexOf("where") <= 0) {// 没有where关键字
+				sql = sql + " where " + conditionSql.substring(4, conditionSql.length());
+			} else {
+				sql = sql + conditionSql;
+			}
+		}
+		return sql;
+	}
+}

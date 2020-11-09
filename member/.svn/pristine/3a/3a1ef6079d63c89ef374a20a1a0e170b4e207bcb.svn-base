@@ -1,0 +1,31 @@
+package com.taole.member.domain.param.UserApi;
+
+import io.swagger.annotations.ApiModelProperty;
+
+public class Login {
+
+	public static class UserApiLoginReq{
+		
+		@ApiModelProperty(value = "登陆手机号", required = true)
+		private String mobileNum;
+		
+		@ApiModelProperty(value = "手机验证码", required = true)
+		private String verifyCode;
+
+		public String getMobileNum() {
+			return mobileNum;
+		}
+
+		public void setMobileNum(String mobileNum) {
+			this.mobileNum = mobileNum;
+		}
+
+		public String getVerifyCode() {
+			return verifyCode;
+		}
+
+		public void setVerifyCode(String verifyCode) {
+			this.verifyCode = verifyCode;
+		}
+	}
+}

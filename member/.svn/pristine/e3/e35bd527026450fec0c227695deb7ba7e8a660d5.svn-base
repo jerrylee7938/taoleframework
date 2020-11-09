@@ -1,0 +1,386 @@
+package com.taole.member.service.api;
+
+import java.util.Date;
+import java.util.List;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.framework.dao.util.Range;
+import com.taole.framework.dao.util.Sorter;
+import com.taole.framework.rest.RestUrlRuler;
+import com.taole.framework.rest.ReturnResult;
+import com.taole.framework.service.ServiceResult;
+import com.taole.member.Constants.TransactionType;
+import com.taole.member.Constants.UserGoodsOrderStatus;
+import com.taole.member.Constants.UserGoodsOrderType;
+import com.taole.member.ProjectConfig;
+import com.taole.member.condition.GoodsBillDetailCondition;
+import com.taole.member.condition.UserBillCondition;
+import com.taole.member.condition.UserGoodsOrderCondition;
+import com.taole.member.domain.GoodsBillDetail;
+import com.taole.member.domain.GoodsInfo;
+import com.taole.member.domain.User;
+import com.taole.member.domain.param.UserApi.BindOpenId;
+import com.taole.member.domain.param.UserApi.Login;
+import com.taole.member.domain.param.UserApi.Update;
+import com.taole.member.domain.param.UserApi.UserBillList;
+import com.taole.member.domain.param.UserApi.UserGoodsList;
+import com.taole.member.domain.param.UserApi.UserGoodsRetrieve;
+import com.taole.member.domain.param.UserApi.WxLogin;
+import com.taole.member.manager.GoodsBillDetailManager;
+import com.taole.member.manager.GoodsInfoManager;
+import com.taole.member.manager.SmsVerifyManager;
+import com.taole.member.manager.UserAttrManager;
+import com.taole.member.manager.UserBillManager;
+import com.taole.member.manager.UserGoodsOrderManager;
+import com.taole.member.manager.UserManager;
+import com.taole.member.utils.RestClientUtil;
+import com.taole.member.utils.SmsSenderUtil;
+import com.taole.toolkit.util.DateStyle;
+import com.taole.toolkit.util.DateUtil;
+import com.taole.toolkit.util.biz.ConvertUtil;
+
+@Controller
+@Api(tags = { "客户端用户操作接口管理" })
+@RequestMapping(value = RestUrlRuler.REST_ROOT + "/" + ProjectConfig.PREFIX + "UserApi")
+public class UserApi {
+	
+	private Logger logger = LoggerFactory.getLogger(UserApi.class);
+	
+	@Autowired
+	private UserManager userManager;
+	
+	@Autowired
+	private SmsVerifyManager smsVerifyManager;
+	
+	@Autowired
+	private UserAttrManager userAttrManager;
+	
+	@Autowired
+	private UserBillManager userBillManager;
+	
+	@Autowired
+	private UserGoodsOrderManager userGoodsOrderManager;
+	
+	@Autowired
+	private GoodsBillDetailManager goodsBillDetailManager;
+	
+	@Autowired
+	private GoodsInfoManager goodsInfoManager;
+	
+	@RequestMapping(value = "/collection/sendVerifyCode", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "发送短信验证码", httpMethod = "GET", response = ServiceResult.class)
+	public @ResponseBody Object sendVerifyCode(@ApiParam(value = "手机号", name = "mobileNum", required = true) @RequestParam String mobileNum){
+		try {
+			
+			if(StringUtils.isBlank(mobileNum))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "用户手机号不能为空！");
+			
+			if(!SmsSenderUtil.isMobileNumber(mobileNum))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "用户手机号输入错误！");
+			
+			String result = userManager.sendSmsVerifyCode(mobileNum);
+			if("100".equals(result))
+				return new ServiceResult(ReturnResult.SUCCESS, "验证码获取成功！");
+			
+			return new ServiceResult(ReturnResult.FAILURE, result);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "UserApi" + ".sendVerifyCode:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "获取验证码失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/login", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "用户账号登陆/注册", httpMethod = "POST", response = Login.UserApiLoginRsp.class)
+	public @ResponseBody Object login(@RequestBody Login.UserApiLoginReq req){
+		
+		try {
+			if(StringUtils.isBlank(req.getMobileNum()))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "用户手机号不能为空！");
+			
+			if(!SmsSenderUtil.isMobileNumber(req.getMobileNum()))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "用户手机号输入错误！");
+			
+			if(StringUtils.isBlank(req.getVerifyCode()))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "验证码不能为空！");
+			
+			if(!SmsSenderUtil.isVerifyCode(req.getVerifyCode()))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "用户手机号输入错误！");
+			
+			String validateVerifyCodeResult = smsVerifyManager.validateVerifyCode(req.getVerifyCode(), req.getMobileNum());
+			if(!"100".equals(validateVerifyCodeResult))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, validateVerifyCodeResult);
+			
+			User user = userManager.loginOrRegister(req.getMobileNum());
+			
+			JSONObject resultObj = loginResult(user);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, resultObj);
+			
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "UserApi" + ".login:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "登陆失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/wxLogin", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "用户微信账号登陆/注册", httpMethod = "POST", response = WxLogin.UserApiWxLoginRsp.class)
+	public @ResponseBody Object wxLogin(@RequestBody WxLogin.UserApiWxLoginReq req){
+		
+		try {
+			String code = req.getCode();
+			String encryptedData = req.getEncryptedData();
+			String iv = req.getIv();
+			
+			logger.info("login for wx code ====================" + code);
+			logger.info("login for wx encryptedData ====================" + encryptedData);
+			logger.info("login for wx iv ====================" + iv);
+			
+			String mobileNumber = RestClientUtil.getWxUserInfo(code, encryptedData, iv);
+			
+			if(StringUtils.isBlank(mobileNumber)){
+				return new ServiceResult(ReturnResult.FAILURE, "获取用户手机号失败！");
+			}
+			
+			User user = userManager.loginOrRegister(mobileNumber);
+			
+			JSONObject resultObj = loginResult(user);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, resultObj);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "UserApi" + ".wxLogin:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "登陆失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/{id}/update", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "修改用户基本信息", httpMethod = "POST", response = ServiceResult.class)
+	public @ResponseBody Object update(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(required = true, name = "id", value = "用户ID") @PathVariable String id,
+			@RequestBody Update.UserApiUpdateReq req){
+		
+		try {
+			
+			if (StringUtils.isEmpty(id)) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "用户id不能为空！");
+			}
+			
+			User user = userManager.getUser(id);
+			if(user == null){
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "用户信息不存在！");
+			}
+			
+			ConvertUtil.BeanToBean(req, user);
+			userManager.updateUser(user);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "信息修改成功");
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "UserApi" + ".update:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "信息修改失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/update", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "绑定openId", httpMethod = "POST", response = ServiceResult.class)
+	public @ResponseBody Object bindOpenId(HttpServletRequest request, HttpServletResponse response,
+			@RequestBody BindOpenId.UserApiBindOpenIdReq req){
+		
+		try {
+			
+			if (StringUtils.isEmpty(req.getUserId())) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "用户id不能为空！");
+			}
+			
+			if (StringUtils.isEmpty(req.getCode())) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "code不能为空！");
+			}
+			
+			User user = userManager.getUser(req.getUserId());
+			if(user == null){
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "用户信息不存在！");
+			}
+			
+//			String openId = userAttrManager.getUserOpenId(user.getId());
+			JSONObject openIdObject = RestClientUtil.getOpenId(req.getCode());
+			if(openIdObject.containsKey("errcode") && !openIdObject.getString("errcode").equals("0")){
+				return new ServiceResult(ReturnResult.FAILURE, "openId获取失败：" + openIdObject.getString("errmsg"));
+			}
+			
+			userAttrManager.saveUserOpenId(user.getId(), openIdObject.getString("openid"));
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "绑定openId成功");
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "UserApi" + ".bindOpenId:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "绑定openId失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/userBillList", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "获取用户消费列表", httpMethod = "GET", response = UserBillList.UserApiUserBillListRsp.class)
+	public @ResponseBody Object userBillList(HttpServletResponse response, HttpServletRequest request,
+			@ApiParam(value = "分页参数，开始行数从0开始", required = true, defaultValue = "0") @RequestParam int start,
+			@ApiParam(value = "分页参数，每页显示条数", required = true, defaultValue = "25") @RequestParam int limit,
+			@ModelAttribute UserBillList.UserApiUserBillListReq req) {
+		
+		try {
+			//分页数据
+			Range range = new Range(start, limit);
+			//排序
+			Sorter sorter = new Sorter().desc("createTime");
+			//筛选
+			UserBillCondition condition = new UserBillCondition();
+			condition.setActionTypeId(req.getActionTypeId());
+			condition.setUserId(req.getUserId());
+			
+			String billDate = DateUtil.DateToString(new Date(), DateStyle.YYYY_MM_DD);
+			if(StringUtils.isNotBlank(req.getTime()))
+				billDate = req.getTime()+"-01";
+			
+			String firstDayOfMonth = DateUtil.DateToString(DateUtil.getFirstDayOfMonth(DateUtil.StringToDate(billDate)), DateStyle.YYYY_MM_DD);
+			String lastDayOfMonth = DateUtil.DateToString(DateUtil.getLastDayOfMonth(DateUtil.StringToDate(billDate)), DateStyle.YYYY_MM_DD);
+			condition.setStartTime(DateUtil.StringToDate(firstDayOfMonth, DateStyle.YYYY_MM_DD));
+			condition.setEndTime(DateUtil.StringToDate(lastDayOfMonth, DateStyle.YYYY_MM_DD));
+			
+			JSONArray resultArray = userBillManager.userBillList(condition, range, sorter);
+			
+			JSONObject resultObject = new JSONObject();
+			resultObject.put("items", resultArray);
+			resultObject.put("payCount", userBillManager.userBillPayCount(condition));
+			resultObject.put("incomeCount", 0);
+			resultObject.put("total", userBillManager.count(condition));
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "查询成功", resultObject);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "UserApi" + ".userBillList:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "查询失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/userGoodsList", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "获取用户待领取商品列表", httpMethod = "GET", response = UserGoodsList.UserApiUserGoodsListRsp.class)
+	public @ResponseBody Object userGoodsList(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "分页参数，开始行数从0开始", required = true, defaultValue = "0") @RequestParam int start,
+			@ApiParam(value = "分页参数，每页显示条数", required = true, defaultValue = "25") @RequestParam int limit,
+			@ApiParam(value = "用户ID", required = true) @RequestParam String userId){
+		
+		try {
+			
+			User user = userManager.getUser(userId);
+			if(user == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "用户信息不存在");
+			
+			Range range = new Range(start, limit);
+			
+			Sorter sroter = new Sorter().desc("orderTime");
+			
+			UserGoodsOrderCondition condition = new UserGoodsOrderCondition();
+			condition.setOrderType(UserGoodsOrderType.GOODS);
+			condition.setStatus(UserGoodsOrderStatus.UNUSE);
+			condition.setUserId(userId);
+			
+			JSONArray resultArray = userGoodsOrderManager.searchToJsonForGoods(condition, range, sroter);
+			
+			JSONObject resultObject = new JSONObject();
+			resultObject.put("items", resultArray);
+			resultObject.put("total", userGoodsOrderManager.count(condition));
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "查询成功", resultObject);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "UserApi" + ".userGoodsList:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "查询失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/userGoodsRetrieve", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "获取用户待领取商品详情", httpMethod = "GET", response = UserGoodsRetrieve.UserApiUserGoodsRetrieveRsp.class)
+	public @ResponseBody Object userGoodsRetrieve(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "购买商品流水ID", required = true) @RequestParam String shopBillId){
+		
+		try {
+			GoodsBillDetailCondition condition = new GoodsBillDetailCondition();
+			condition.setShopBillId(shopBillId);
+			
+			JSONArray resultArray = new JSONArray();
+			List<GoodsBillDetail> goodsBillDetails = goodsBillDetailManager.list(condition);
+			for(GoodsBillDetail gbd : goodsBillDetails){
+				GoodsInfo goodsInfo = goodsInfoManager.getGoodsInfo(gbd.getGoodsId());
+				JSONObject object = new JSONObject();
+				object.put("goodsName", goodsInfo.getName());
+				object.put("num", gbd.getAmount());
+				
+				resultArray.add(object);
+			}
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "查询成功", resultArray);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "UserApi" + ".userGoodsRetrieve:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "查询失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/userTicketList", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "获取用户待领取门票列表", httpMethod = "GET", response = UserGoodsList.UserApiUserGoodsListRsp.class)
+	public @ResponseBody Object userTicketList(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "分页参数，开始行数从0开始", required = true, defaultValue = "0") @RequestParam int start,
+			@ApiParam(value = "分页参数，每页显示条数", required = true, defaultValue = "25") @RequestParam int limit,
+			@ApiParam(value = "用户ID", required = true) @RequestParam String userId){
+		
+		try {
+			
+			User user = userManager.getUser(userId);
+			if(user == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "用户信息不存在");
+			
+			Range range = new Range(start, limit);
+			
+			Sorter sroter = new Sorter().desc("orderTime");
+			
+			UserGoodsOrderCondition condition = new UserGoodsOrderCondition();
+			condition.setOrderType(UserGoodsOrderType.TICKET);
+			condition.setStatus(UserGoodsOrderStatus.UNUSE);
+			condition.setUserId(userId);
+			
+			JSONArray resultArray = userGoodsOrderManager.searchToJsonForTicket(condition, range, sroter);
+			
+			JSONObject resultObject = new JSONObject();
+			resultObject.put("items", resultArray);
+			resultObject.put("total", userGoodsOrderManager.count(condition));
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "查询成功", resultObject);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "UserApi" + ".userGoodsList:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "查询失败: " + e.getMessage());
+		}
+	}
+	
+	private JSONObject loginResult(User user){
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put("id", user.getId());
+		jsonObject.put("name", user.getName());
+		jsonObject.put("telphone", user.getTelphone());
+		jsonObject.put("avatar", user.getAvatar());
+		jsonObject.put("gender", user.getGender() != null ? String.valueOf(user.getGender()) : "");
+		jsonObject.put("birthday", user.getBirthday() != null ? DateUtil.DateToString(user.getBirthday(), DateStyle.YYYY_MM_DD_CN) : "");
+		return jsonObject;
+	}
+}

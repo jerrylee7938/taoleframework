@@ -1,0 +1,534 @@
+/**
+ * Project:member
+ * File:memberCardManager.java 
+ * Copyright 2014-2016 Bei Jing Yi Sheng Jia Technology Development Co., Ltd. All rights reserved.
+ */
+package com.taole.member.manager;
+
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.time.DateUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.HibernateException;
+import org.hibernate.SQLQuery;
+import org.hibernate.Session;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.hibernate3.HibernateCallback;
+import org.springframework.orm.hibernate3.support.HibernateDaoSupport;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.framework.annotation.DomainEngine;
+import com.taole.framework.dao.DomainObjectDao;
+import com.taole.framework.dao.util.PaginationSupport;
+import com.taole.framework.dao.util.Range;
+import com.taole.framework.dao.util.Sorter;
+import com.taole.framework.events.EventMethod;
+import com.taole.framework.util.SerializableJSONTransformer;
+import com.taole.framework.util.UUID;
+import com.taole.member.Constants;
+import com.taole.member.Constants.CardExpire;
+import com.taole.member.Constants.CardType;
+import com.taole.member.Constants.MemberCardStatus;
+import com.taole.member.Constants.PayType;
+import com.taole.member.Constants.TransactionType;
+import com.taole.member.Constants.UnitType;
+import com.taole.member.Constants.UserBillApplyStatus;
+import com.taole.member.ProjectConfig;
+import com.taole.member.condition.MemberCardCondition;
+import com.taole.member.condition.OrderServiceCondition;
+import com.taole.member.config.MemberConfig;
+import com.taole.member.domain.CardInfo;
+import com.taole.member.domain.MemberCard;
+import com.taole.member.domain.Order;
+import com.taole.member.domain.OrderService;
+import com.taole.member.domain.ShopInfo;
+import com.taole.member.domain.TradeLock;
+import com.taole.member.domain.User;
+import com.taole.member.domain.UserBill;
+import com.taole.member.domain.UserBillApply;
+import com.taole.member.sql.MemberCardSql;
+import com.taole.toolkit.dict.domain.Dictionary;
+import com.taole.toolkit.dict.manager.DictionaryManager;
+import com.taole.toolkit.util.DateStyle;
+import com.taole.toolkit.util.DateUtil;
+
+/**
+ * @author  Generator
+ * @version $Id$
+ */
+@DomainEngine(types = MemberCard.class)
+@Transactional(readOnly = true)
+public class MemberCardManager {
+	
+	@Resource(name = ProjectConfig.PREFIX + "memberCardDao")
+	DomainObjectDao<MemberCard> memberCardDao;
+	
+	@Autowired
+	private DictionaryManager dictionaryManager;
+	@Autowired
+	private CardInfoManager cardInfoManager;
+	@Autowired
+	private UserBillManager userBillManager;
+	@Autowired
+	private UserManager userManager;
+	@Autowired
+	private ShopInfoManager shopInfoManager;
+	@Autowired
+	private UserBillApplyManager userBillApplyManager;
+	@Autowired
+	private MemberConfig memberConfig;
+	@Autowired
+	private OrderManager orderManager;
+	@Autowired
+	private OrderServiceManager orderServiceManager;
+	@Autowired
+	private TradeLockManager tradeLockManager;
+	
+	@DomainEngine.C
+	@EventMethod
+	@Transactional
+	public String createMemberCard(MemberCard memberCard) {
+		if(StringUtils.isBlank(memberCard.getUserCardId()))
+			memberCard.setUserCardId(UUID.generateUUID());
+		
+		memberCard.setCreateTime(new Date());
+		return memberCardDao.createObject(memberCard);
+	}
+
+	@DomainEngine.U
+	@EventMethod
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public void updateMemberCard(MemberCard memberCard) {
+		memberCard.setUpdateTime(new Date());
+		memberCardDao.updateObject(memberCard);
+	}
+	
+	@DomainEngine.D
+	@EventMethod
+	@Transactional
+	public void deleteMemberCard(MemberCard memberCard) {
+		memberCardDao.deleteObject(memberCard);
+	}
+	
+	@DomainEngine.R
+	public MemberCard getMemberCard(String id) {
+		return memberCardDao.loadObject(id);
+	}
+	
+	public List<MemberCard> list(MemberCardCondition condition) {
+		return memberCardDao.listByCondition(condition);
+	}
+	public List<MemberCard> list(MemberCardCondition condition, Sorter sorter, int limit) {
+		return memberCardDao.listByCondition(condition, sorter, limit);
+	}
+	
+	public PaginationSupport<MemberCard> search(MemberCardCondition condition, Range range, Sorter sroter) {
+		return memberCardDao.search(condition, range, sroter);
+	}
+	
+	public int count(MemberCardCondition condition){
+		return memberCardDao.countByCondition(condition);
+	}
+	
+	public MemberCard findByCondition(MemberCardCondition condition) {
+		List<MemberCard> list = memberCardDao.listByCondition(condition, 1);
+		if (list.size() == 0) {
+			return null;
+		} else {
+			return list.get(0);
+		}
+	}
+	
+	public Object searchToJson(MemberCardCondition condition, Range range, Sorter sroter){
+		PaginationSupport<MemberCard> ps = search(condition, range, sroter);
+		JSONArray resultAry = new JSONArray();
+		for(MemberCard memberCard : ps.getItems()){
+			CardInfo cardInfo = cardInfoManager.getCardInfo(memberCard.getCardId());
+			User user = userManager.getUser(memberCard.getUserId());
+			JSONObject obj = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(memberCard);
+
+			ShopInfo shopInfo = shopInfoManager.getShopInfo(memberCard.getOperatorShopId());
+			if(memberCard.getStatus().equals(MemberCardStatus.T0_BE_OPEN)){
+				Integer blanceNum = cardInfo.getTotalNum();
+				obj.put("blanceNum", blanceNum);
+			}else{
+				Integer blanceNum = userBillManager.getBalanceNum(memberCard.getUserCardId());
+				obj.put("blanceNum", blanceNum);
+			}
+			if(shopInfo == null){
+				obj.put("shopName", "");
+			}else {
+				obj.put("shopName", shopInfo.getName());
+			}
+			obj.put("cardName", cardInfo.getCardName());
+			obj.put("cardTypeName", dictionaryManager.getDictName(CardType.DICTIONARY_CARD_TYPE_CODE_ID, cardInfo.getCardType()));
+			obj.put("userName", StringUtils.isNotBlank(memberCard.getUserName()) ? memberCard.getUserName() : "");
+			obj.put("telphone", user.getTelphone());
+			obj.put("cardStatus", dictionaryManager.getDictName(MemberCardStatus.DICTIONARY_MEMBERCARD_STATUS_CODE_ID, memberCard.getStatus()));
+			
+			//obj.put("cardStatusName", dictionaryManager.getDictName(CardStatus.DICTIONARY_CARD_STATUS_CODE_ID, cardInfo.getStatus()));
+			//obj.put("cardExpireName", dictionaryManager.getDictName(CardExpire.DICTIONARY_CARD_EXPIRE_CODE_ID, cardInfo.getChargeType()));
+			resultAry.add(obj);
+		}
+		return resultAry;
+	}
+	
+	//获取用户权限对应店id
+	public String[]  getShopIdByUser(JSONObject userDataObj){
+		JSONArray dataPriv = new JSONArray();
+		if(userDataObj.containsKey("result_data") && userDataObj.getJSONObject("result_data").containsKey("dataPriv")){
+			dataPriv = userDataObj.getJSONObject("result_data").getJSONArray("dataPriv");
+		}
+		String[] operatorShopIds = null;
+		if(dataPriv.size() > 0){
+			JSONArray priv = dataPriv.getJSONObject(0).getJSONArray("priv");
+			operatorShopIds = new String[priv.size()];
+			for(int i=0; i<priv.size(); i++){
+				JSONObject dataPrivObj = priv.getJSONObject(i);
+				operatorShopIds[i] = dataPrivObj.getString("id");
+			}
+			
+		}
+		
+		return operatorShopIds;
+	}
+	
+	public Object searchToJsonForMember(JSONObject userDataObj) {
+		MemberCardCondition condition = new MemberCardCondition();
+		JSONArray dataPriv = new JSONArray();
+		if(userDataObj.containsKey("result_data") && userDataObj.getJSONObject("result_data").containsKey("dataPriv")){
+			dataPriv = userDataObj.getJSONObject("result_data").getJSONArray("dataPriv");
+		}
+		
+		if(dataPriv.size() > 0){
+			JSONArray priv = dataPriv.getJSONObject(0).getJSONArray("priv");
+			String[] operatorShopIds = new String[priv.size()];
+			for(int i=0; i<priv.size(); i++){
+				JSONObject dataPrivObj = priv.getJSONObject(i);
+				operatorShopIds[i] = dataPrivObj.getString("id");
+			}
+			
+			condition.setOperatorShopIds(operatorShopIds);
+		}
+		
+		List<MemberCard> membercardList = list(condition);
+		
+		JSONArray resultAry = (JSONArray) SerializableJSONTransformer.transformPojo2Jso(membercardList);
+		return resultAry;
+	}
+	
+	
+	//获取开卡单号
+	public String generateCreateCardCode() {
+		
+			Date date = new Date();
+			SimpleDateFormat formatter = new SimpleDateFormat("yyMMddHHmmssSSS");
+			String code = formatter.format(date);
+			code = "BK"+code;
+			return code;
+		} 
+	
+	/**
+	 * //计算会员卡有效时间 Date getDeadDate(memberCard)
+	 * 
+	 * @return
+	 */
+	public Date getDeadDate(MemberCard memberCard, Date deadline) {
+		
+		CardInfo cardInfo = cardInfoManager.getCardInfo(memberCard.getCardId());
+		String type = cardInfo.getCardType();
+		String chargeType = cardInfo.getChargeType();
+		Date nowTime = deadline == null ? new Date() : deadline;
+		if (type.equals(CardType.TIMES_COUNT)) {
+			return DateUtils.addDays(nowTime, cardInfo.getPeriodOfValidity());
+		}else if (type.equals(CardType.TERM)) {
+			if (chargeType.equals(CardExpire.MONTH_CARD)) {
+				return  DateUtils.addMonths(nowTime, 1);
+			}else if (chargeType.equals(CardExpire.SEASON_CARD)) {
+				return  DateUtils.addMonths(nowTime, 3);
+			}else if(chargeType.equals(CardExpire.HALFYEAR_CARD)){
+				return  DateUtils.addMonths(nowTime, 6);
+			}else if(chargeType.equals(CardExpire.YEAR_CARD)){
+				return  DateUtils.addMonths(nowTime, 12);
+			}
+		}else {
+			return null;
+		}
+		return nowTime;
+	}
+	
+	//判断是否第一次划卡
+	public boolean isFirstSwipe(MemberCard memberCard){
+		String cardStatus = memberCard.getStatus();
+		if(cardStatus.equals(MemberCardStatus.TO_BE_ACTIVE)){
+			return true;
+		}else{
+			return false;
+		}
+	}
+	
+	/**
+	 * 验证手机号码的正确性
+	 * 
+	 * @param mobileNumber
+	 * @return
+	 */
+	public  boolean isMobileNumber(String mobileNumber) {
+		String regex = "^((13[0-9])|(14[5,7,9])|(15([0-3]|[5-9]))|(16([6]))|(17[0,1,3,5,6,7,8])|(18[0-9])|(19[8|9]))\\d{8}$";
+		if (mobileNumber.length() != 11) {
+			return false;
+		} else {
+			Pattern p = Pattern.compile(regex);
+			Matcher m = p.matcher(mobileNumber);
+			return m.matches();
+		}
+	}
+	//办卡
+	@Transactional
+	public String applyCard(User user,CardInfo cardInfo,UserBillApply userBillApply ,MemberCard memberCardReq, TradeLock tradeLock2){
+		String userId = user.getId();
+		if (StringUtils.isBlank(userId)){
+			userId = userManager.createUser(user);
+		}
+		
+		tradeLockManager.createTradeLock(tradeLock2);
+		
+		String bizNo = generateCreateCardCode();
+		//新增会员卡
+		MemberCard memberCard = new MemberCard();
+		memberCardReq.setUserId(userId);
+		memberCardReq.setCardId(cardInfo.getCardId());
+		memberCardReq.setBizNo(bizNo);
+		memberCardReq.setCardPwd("");
+		memberCardReq.setMoney(cardInfo.getMoney());
+		memberCardReq.setCardNum(cardInfo.getTotalNum());
+	//	memberCardReq.setOperator("");
+		memberCardReq.setOperateTime(new Date());
+		memberCardReq.setDeadline(null);
+		memberCardReq.setApprover(null);
+		memberCardReq.setApproverShopId(null);
+		memberCardReq.setApproverTime(null);
+		memberCardReq.setMoney(cardInfo.getMoney());
+		memberCardReq.setStatus(MemberCardStatus.T0_BE_OPEN);
+		memberCardReq.setCardImage(cardInfo.getCardImage());;
+		String userCardId = createMemberCard(memberCardReq);
+		
+		//流水表添加记录
+		/*userBill.setUserBillNo(bizNo);
+		userBill.setShopBillId(null);
+		userBill.setUserCardId(userCardId);
+		userBill.setUserId(user.getId());
+		userBill.setConsumeUnit("YUAN");
+		userBill.setBalanceNum(cardInfo.getTotalNum());
+		userBill.setBalance(0.0);
+		userBill.setActionTypeId("BK");
+		userBill.setInOutType("WJWC");
+		userBill.setOperateTime(new Date());
+		userBill.setCreateTime(new Date());
+		String userBillID = userBillManager.createUserBill(userBill);*/
+		
+		//return  userBillID;
+		
+		MemberCardCondition memberCardCondition = new MemberCardCondition();
+		memberCardCondition.setUserCardId(userCardId);
+		MemberCard memberCard2 = findByCondition(memberCardCondition);
+		userBillApply.setCardId(memberCard2.getCardId());
+		userBillApply.setShopId(memberCard2.getOperatorShopId());
+		Integer  amount = 1;
+		userBillApply.setAmount(amount);
+		userBillApply.setUserCardId(userCardId);
+		String applyId = userBillApplyManager.createUserBillApply(userBillApply);
+		return  userCardId;
+		
+	}
+	
+	
+	
+	
+	/**
+	 * 获取用户会员卡列表
+	 * @param userId
+	 * @return
+	 */
+	public JSONArray userMemberCard(final String userId){
+		
+		List<?> list = ((HibernateDaoSupport) memberCardDao).getHibernateTemplate().executeWithNativeSession(new HibernateCallback<List<?>>() {
+			@Override
+			public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+				String sql = MemberCardSql.userMemberCardSql();
+				SQLQuery sqlQuery = session.createSQLQuery(sql);
+				sqlQuery.setParameter("userId", userId);
+				sqlQuery.setParameter("onlineShow", "1");
+				List<?> list = sqlQuery.list();
+				return list;
+			}
+		});
+		
+		JSONArray resultAry = new JSONArray();
+		for(int i=0; i<list.size(); i++){
+			Object[] objs = (Object[]) list.get(i);
+			JSONObject object = new JSONObject();
+			object.put("userCardId", objs[0]);
+			object.put("userCardNo", objs[1]);
+			
+			Timestamp deadline = (Timestamp) objs[2];
+			if(deadline != null){
+				Date deadDate = deadline;
+				object.put("deadline", DateUtil.DateToString(deadDate, DateStyle.YYYY_MM_DD));
+			}else {
+				object.put("deadline", "");
+			}
+			
+			String status = (String) objs[3];
+			object.put("status", status);
+			object.put("statusName", dictionaryManager.getDictName(MemberCardStatus.DICTIONARY_MEMBERCARD_STATUS_CODE_ID, status));
+			object.put("image", objs[4]);
+			object.put("cardName", objs[5]);
+			object.put("cardId", objs[6]);
+			object.put("cardType", objs[7]);
+			object.put("cardTypeName", dictionaryManager.getDictName(CardType.DICTIONARY_CARD_TYPE_CODE_ID, (String) objs[7]));
+			
+			int blanceNum = 0;
+			if(MemberCardStatus.T0_BE_OPEN.equals(status)){
+				String totalNum = String.valueOf((Integer) objs[8]);
+				blanceNum = StringUtils.isNotBlank(totalNum) ? Integer.valueOf(blanceNum) : 0;
+			}else{
+				blanceNum = userBillManager.getBalanceNum((String)objs[0]);
+			}
+			object.put("balanceNum", blanceNum);
+			
+			object.put("userName", (String) objs[9]);
+			object.put("userAvatar", (String) objs[10]);
+			object.put("userBirthDay", objs[11]);
+			object.put("userGender", ((Integer) objs[12]) == null ? "" : String.valueOf((Integer) objs[12]));
+			
+			int intervalDays = 0;
+			if(StringUtils.isNotBlank(object.getString("deadline"))){
+				intervalDays = DateUtil.getIntervalDays(object.getString("deadline"), DateUtil.DateToString(new Date(), DateStyle.YYYY_MM_DD));
+			}
+			//剩余天数
+			object.put("intervalDays", intervalDays);
+			
+			resultAry.add(object);
+		}
+		
+		return resultAry;
+	}
+	
+	/**
+	 * 获取用户可充值会员卡列表
+	 * @param userId
+	 * @return
+	 */
+	public JSONArray userMemberCardForRecharge(final String userId, final String shopId){
+		
+		List<?> list = ((HibernateDaoSupport) memberCardDao).getHibernateTemplate().executeWithNativeSession(new HibernateCallback<List<?>>() {
+			@Override
+			public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+				String sql = MemberCardSql.userMemberCardForRechargeSql();
+				SQLQuery sqlQuery = session.createSQLQuery(sql);
+				sqlQuery.setParameter("userId", userId);
+				sqlQuery.setParameter("shopId", shopId);
+				sqlQuery.setParameter("onlineRecharge", "1");
+				sqlQuery.setParameter("status", "1");
+				List<?> list = sqlQuery.list();
+				return list;
+			}
+		});
+		
+		JSONArray resultAry = new JSONArray();
+		for(int i=0; i<list.size(); i++){
+			Object[] objs = (Object[]) list.get(i);
+			JSONObject object = new JSONObject();
+			object.put("userCardId", objs[0]);
+			object.put("userCardNo", objs[1]);
+			
+			Date deadline = (Date) objs[2];
+			object.put("deadline", "");
+			if(deadline != null)
+				object.put("deadline", DateUtil.DateToString(deadline, DateStyle.YYYY_MM_DD_CN));
+			object.put("cardName", objs[3]);
+			object.put("cardImage", StringUtils.isNotBlank((String)objs[4]) ? objs[4] : memberConfig.getDefaultImage());
+			String cardType = (String) objs[5];
+			object.put("cardType", cardType);
+			Dictionary dictionary = dictionaryManager.getDictionaryByFather(CardType.DICTIONARY_CARD_TYPE_CODE_ID, cardType);
+			object.put("cardTypeName", "");
+			if(dictionary != null)
+				object.put("cardTypeName", dictionary.getName());
+			object.put("blance", userBillManager.getBalanceNum((String) objs[0]));
+			object.put("cardId", objs[6]);
+			
+			resultAry.add(object);
+		}
+		
+		return resultAry;
+	}
+	
+	@Transactional
+	public void rechargeSuccess(String orderId){
+		
+		Order order = orderManager.getOrder(orderId);
+		
+		OrderServiceCondition osCondition = new OrderServiceCondition();
+		osCondition.setOrderId(orderId);
+		List<OrderService> orderServices = orderServiceManager.list(osCondition);
+		for(OrderService orderService : orderServices){
+			
+			MemberCard memberCard = getMemberCard(orderService.getServiceId());
+			CardInfo cardInfo = cardInfoManager.getCardInfo(orderService.getDescription());
+			String cardType = cardInfo.getCardType();
+			
+			UserBillApply userBillApply = new UserBillApply();
+			userBillApply.setCardId(order.getComment());
+			userBillApply.setShopId(order.getShopId());
+			userBillApply.setAmount(1);
+			userBillApply.setUserCardId(orderService.getServiceId());
+			userBillApply.setTransType(TransactionType.CZ);
+			userBillApply.setMoney(order.getAmount());
+			userBillApply.setPayType(PayType.WX);
+			userBillApply.setDescription("微信小程序充值");
+			
+			if(CardType.TIMES_COUNT.equals(cardType))
+				userBillApply.setChargeNo(cardInfo.getTotalNum());
+			userBillApply.setStatus(UserBillApplyStatus.AUDITPASS);
+			userBillApplyManager.createUserBillApply(userBillApply);
+			
+			
+			UserBill userBill = new UserBill();
+			String billNo = userBillManager.getUserBillNo(Constants.ActionType.CONSUME);
+			userBill.setUserBillId(billNo);
+			userBill.setUserBillNo(billNo);
+			userBill.setUserId(order.getAccountId());
+			userBill.setUserCardId(orderService.getServiceId());
+			userBill.setConsumeMoney(order.getAmount());
+			userBill.setConsumeUnit(UnitType.YUAN);
+			userBill.setActionTypeId(Constants.TransactionType.CZ);
+			userBill.setInOutType(Constants.InOutType.IN);
+			if(CardType.TIMES_COUNT.equals(cardType))
+				userBill.setBalanceNum(cardInfo.getTotalNum() + userBillManager.getBalanceNum(orderService.getServiceId()));
+			else {
+				userBill.setBalanceNum(0);
+			}
+			userBill.setPayType(PayType.WX);
+			userBill.setOperatorShopId(order.getShopId());
+			userBill.setOperateTime(new Date());
+			userBill.setDescription("微信小程序充值");
+			userBillManager.createUserBill(userBill);
+			
+			
+			Date deadLine = memberCard.getDeadline();
+			memberCard.setDeadline(getDeadDate(memberCard, deadLine));
+			updateMemberCard(memberCard);
+		}
+	}
+}

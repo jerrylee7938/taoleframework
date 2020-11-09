@@ -1,0 +1,384 @@
+/**
+ * Project:member
+ * File:Constants.java 
+ * Copyright 2014-2016 Bei Jing Yi Sheng Jia Technology Development Co., Ltd. All rights reserved.
+ */
+package com.taole.member;
+
+/**
+ * @author Generator
+ * @since Jul 29, 2016 17:41:16 PM
+ * @version $Id$
+ */
+public final class Constants {
+	
+	public final static String SUPER_VERIFY_CODE = "98a201a80cbe4171bae2ca7e5262dabf";
+
+	/**
+	 * 定位失败默认显示店铺信息字典编码
+	 */
+	public final static String LOCATION_ERROR_DEFAULT_SHOP_CODE = "9189d24d3e794ea5bc8380fae41d20fd";
+	/**
+	 * 卡状态
+	 */
+	public class CardStatus {
+
+		public final static String DICTIONARY_CARD_STATUS_CODE_ID = "a4146cc08ae54c97983708774a303884";
+		/**
+		 * 1 启用
+		 */
+		public final static String EFFECTIVE = "1";
+		/**
+		 * 0停用
+		 */
+		public final static String UN_EFFECTIVE = "0";
+		/**
+		 * 2待审核
+		 */
+		public final static String T0_BE_AUDITED = "2";
+	}
+
+	/**
+	 * 卡类型
+	 */
+	public class CardType {
+
+		public final static String DICTIONARY_CARD_TYPE_CODE_ID = "CARDTYPE_CODE";
+		/**
+		 * 计次卡
+		 */
+		public final static String TIMES_COUNT = "JCK";
+		/**
+		 * 期限卡
+		 */
+		public final static String TERM = "QXK";
+	}
+
+	/**
+	 * 卡有效期类型
+	 */
+	public class CardExpire {
+
+		public final static String DICTIONARY_CARD_EXPIRE_CODE_ID = "21a0578289544ae5a24d7bfad7130d2d";
+		/**
+		 * 月卡
+		 */
+		public final static String MONTH_CARD = "MONTHCARD";
+		/**
+		 * 季卡
+		 */
+		public final static String SEASON_CARD = "SEASONCARD";
+		/**
+		 * 半年卡
+		 */
+		public final static String HALFYEAR_CARD = "HALFYEARCARD";
+		/**
+		 * 年卡
+		 */
+		public final static String YEAR_CARD = "YEARCARD";
+	}
+
+	/**
+	 * 店面状态
+	 *
+	 */
+	public static class ShopStatus {
+		/**
+		 * 店面开业状态
+		 */
+		public final static String DICTIONARY_SHOP_STATUS_CODE_ID = "bbbcb9dc0f2b4261aa2ab2b0c0df5675";
+		/**
+		 * 已开业
+		 */
+		public final static String OPEN = "1";
+		/**
+		 * 未开业
+		 */
+		public final static String CLOSE = "0";
+
+	}
+
+	/**
+	 * 店面设置状态
+	 *
+	 */
+	public static class ShopSetStatus {
+		/**
+		 * 已设置
+		 */
+		public final static String SET = "1";
+		/**
+		 * 未设置
+		 */
+		public final static String UNSET = "0";
+
+	}
+	
+	/**
+	 * 会员卡卡状态
+	 */
+	public class MemberCardStatus {
+
+		public final static String DICTIONARY_MEMBERCARD_STATUS_CODE_ID = "78110cde012d44cc81988fb7ba116460";
+		/** 
+		 * 1 已激活
+		 */
+		public final static String ACTIVE = "1";
+		/**
+		 * 2已退卡
+		 */
+		public final static String CLOSE = "2";
+		/**
+		 * 0待审核
+		 */
+		public final static String T0_BE_OPEN = "0";
+		/**
+		 * 3过期
+		 */
+		public final static String OVERDUE = "3";
+		/**
+		 * 4停用
+		 */
+		public final static String STOP = "4";
+		/**
+		 * 5待激活
+		 */
+		public final static String TO_BE_ACTIVE = "5";
+		/**
+		 * 6审核未通过
+		 */
+		public final static String NOT_APPROVE = "6";
+	}
+	
+	/**
+	 * 产品类型
+	 */
+	public class GoodsType {
+
+		public final static String DICTIONARY_GOODS_TYPE_CODE_ID = "dd85a58e85844fc3b838c6c0566e653b";
+		/**
+		 * 商品类
+		 */
+		public final static String GOODS = "SPL";
+		/**
+		 * 期限卡
+		 */
+		public final static String TICKET = "MPL";
+	}
+
+	/**
+	 * 销售单位
+	 */
+	public class UnitType {
+
+		public final static String DICTIONARY_UNIT_TYPE_CODE_ID = "45beb4346979480cb954986246035e28";
+		/**
+		 *  次
+		 */
+		public final static String CI = "CI";
+		/**
+		 * 元
+		 */
+		public final static String YUAN = "YUAN";
+	}
+
+	/**
+	 * 进出
+	 */
+	public class InOutType {
+
+		public final static String DICTIONARY_IN_OUT_TYPE_CODE_ID = "dc1e0aa51d9041f9a36fa414d1a4fb9a";
+		/**
+		 *  入库
+		 */
+		public final static String IN = "RK";
+		/**
+		 *出库
+		 */
+		public final static String OUT = "CK";
+	}
+	
+	/**
+	 * 交易類型
+	 */
+	public class TransactionType {
+
+		public final static String DICTIONARY_TRANSACTION_TYPE_CODE_ID = "TRANSACTIONTYPE_CODE";
+		/**
+		 * 办卡
+		 */
+		public final static String BK = "BK";
+		/**
+		 *消费
+		 */
+		public final static String XF = "XF";
+		/**
+		 *充值
+		 */
+		public final static String CZ = "CZ";
+		/**
+		 *退卡
+		 */
+		public final static String TK = "TK";
+		/**
+		 *划卡
+		 */
+		public final static String HK = "HK";
+	}
+	
+	/**
+	 * 付款方式
+	 */
+	public class PayType {
+
+		public final static String DICTIONARY_PAY_TYPE_CODE_ID = "PAYMODE_CODE";
+		/**
+		 *  现金
+		 */
+		public final static String XJ = "XJ";
+		/**
+		 *银行卡
+		 */
+		public final static String YHK = "YHK";
+		/**
+		 *微信
+		 */
+		public final static String WX = "WX";
+	}
+	/**
+	 * 单据类型
+	 */
+	public class ShopBillType {
+
+		public final static String DICTIONARY_SHOP_BILL_TYPE_CODE_ID = "3b1917f70b0d4956ba8ec1bde7e701dd";
+		/**
+		 *  库存入库
+		 */
+		public final static String INSTORE = "KCRK";
+		/**
+		 *销售出库
+		 */
+		public final static String SALEOUT = "XSCK";
+		/**
+		 *库存出库
+		 */
+		public final static String OUTSTORE = "KCCK";
+	}
+	
+	/**
+	 * 流水行为类型
+	 */
+	public class ActionType {
+
+		public final static String DICTIONARY_ACTION_TYPE_CODE_ID = "b2d45bdc7c2e495a9113381f4a92d558";
+		/**
+		 *  消费
+		 */
+		public final static String CONSUME = "XF";
+	}
+	
+	/**
+	 * 消费者类型
+	 */
+	public class CustomerType {
+
+		public final static String DICTIONARY_CUSTOMER_TYPE_CODE_ID = "CUSTOMERTYPE_CODE";
+		/**
+		 *  会员
+		 */
+		public final static String MEMBER = "HY";
+		/**
+		 *散客
+		 */
+		public final static String NOTMEMBER = "SK";
+	}
+	
+	/**
+	 * 汇总方式
+	 */
+	public class DimensName {
+
+		public final static String DICTIONARY_DIMENS_NAME_CODE_ID = "d6c252cf17d241a7ac232ebc9493b980";
+		/**
+		 * 商品
+		 */
+		public final static String GOODS = "goods";
+		/**
+		 * 交易类型
+		 */
+		public final static String TRADETYPE = "tradeType";
+		/**
+		 * 支付类型
+		 */
+		public final static String PAYTYPE = "payType";
+	}
+	
+	/**
+	 * 审核是否通过
+	 */
+	public class AuditFlag {
+		/**
+		 * 通过
+		 */
+	public final static String YES = "y";
+	/**
+	 * 不通过
+	 */
+	public final static String NO = "n";
+	}
+	
+	/**
+	 * 可售商品类型
+	 */
+	public class SaleObjectType {
+		/**
+		 * 卡
+		 */
+		public final static String CARD = "1";
+		/**
+		 * 商品
+		 */
+		public final static String GOODS = "2";
+	}
+	
+	/**
+	 * 卡充值订单状态
+	 */
+	public class UserBillApplyStatus {
+
+		public final static String DICTIONARY_USER_BILL_APPLY_CODE_ID = "c1e3792dfcbb4bc2a87d61ee1ef08287";
+		/**
+		 * 待审核
+		 */
+		public final static String TOBEAUDITED = "0";
+		/**
+		 * 审核通过
+		 */
+		public final static String AUDITPASS = "1";
+		/**
+		 * 审核不通过
+		 */
+		public final static String AUDITNOTPASS = "2";
+	}
+	
+	/**
+	 * 订单类型
+	 */
+	public class OrderType{
+		/**
+		 * 办卡
+		 */
+		public final static String CARD = "0";
+	}
+	
+	/**
+	 * 卡状态
+	 */
+	public class OrderState{
+		/**
+		 * 待支付
+		 */
+		public final static String WAIT_PAY = "0";
+	}
+
+}

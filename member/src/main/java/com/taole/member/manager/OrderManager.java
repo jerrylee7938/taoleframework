@@ -1,0 +1,82 @@
+/**
+ * Project:member
+ * File:memberCardManager.java 
+ * Copyright 2014-2016 Bei Jing Yi Sheng Jia Technology Development Co., Ltd. All rights reserved.
+ */
+package com.taole.member.manager;
+
+import java.util.Date;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.taole.framework.annotation.DomainEngine;
+import com.taole.framework.dao.DomainObjectDao;
+import com.taole.framework.events.EventMethod;
+import com.taole.framework.util.UUID;
+import com.taole.member.Constants.OrderState;
+import com.taole.member.ProjectConfig;
+import com.taole.member.domain.Order;
+import com.taole.member.utils.OrderUtil;
+
+/**
+ * @author  Generator
+ * @version $Id$
+ */
+@DomainEngine(types = Order.class)
+@Transactional(readOnly = true)
+public class OrderManager {
+	
+	@Resource(name = ProjectConfig.PREFIX + "orderDao")
+	DomainObjectDao<Order> orderDao;
+	
+	@DomainEngine.C
+	@EventMethod
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public String createOrder(Order order) {
+		if(StringUtils.isBlank(order.getId()))
+			order.setId(UUID.generateUUID());
+		
+		order.setCreateTime(new Date());
+		return orderDao.createObject(order);
+	}
+	
+	@DomainEngine.C
+	@EventMethod
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public Order create(String orderId, int num, Double amount, 
+			String shopId, String userId, String type) {
+		Order order = new Order();
+		order.setId(orderId);
+		order.setOrderNo(OrderUtil.makeOrderNum());
+		order.setNum(num);
+		order.setAmount(amount);
+		order.setShopId(shopId);
+		order.setAccountId(userId);
+		order.setType(type);
+		order.setState(Integer.valueOf(OrderState.WAIT_PAY));
+		createOrder(order);
+		return order;
+	}
+
+	@DomainEngine.U
+	@EventMethod
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public void updateOrder(Order order) {
+		orderDao.updateObject(order);
+	}
+	
+	@DomainEngine.D
+	@EventMethod
+	@Transactional
+	public void deleteOrder(Order order) {
+		orderDao.deleteObject(order);
+	}
+	
+	@DomainEngine.R
+	public Order getOrder(String id) {
+		return orderDao.loadObject(id);
+	}
+}

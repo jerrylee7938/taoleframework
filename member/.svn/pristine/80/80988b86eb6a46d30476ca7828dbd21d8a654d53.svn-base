@@ -1,0 +1,429 @@
+package com.taole.member.service.api;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.framework.rest.RestUrlRuler;
+import com.taole.framework.rest.ReturnResult;
+import com.taole.framework.service.ServiceResult;
+import com.taole.framework.util.UUID;
+import com.taole.member.Constants.CardType;
+import com.taole.member.Constants.MemberCardApplyType;
+import com.taole.member.Constants.MemberCardStatus;
+import com.taole.member.Constants.OrderType;
+import com.taole.member.ProjectConfig;
+import com.taole.member.config.MemberConfig;
+import com.taole.member.domain.CardInfo;
+import com.taole.member.domain.MemberCard;
+import com.taole.member.domain.Order;
+import com.taole.member.domain.OrderService;
+import com.taole.member.domain.ShopInfo;
+import com.taole.member.domain.User;
+import com.taole.member.domain.param.MemberCardApi.Apply;
+import com.taole.member.domain.param.MemberCardApi.GetToken;
+import com.taole.member.domain.param.MemberCardApi.MemberCardInfo;
+import com.taole.member.domain.param.MemberCardApi.Recharge;
+import com.taole.member.domain.param.MemberCardApi.SaveUserInfo;
+import com.taole.member.domain.param.MemberCardApi.Recharge.RechargeMemberCard;
+import com.taole.member.domain.param.MemberCardApi.UserMemberCard;
+import com.taole.member.domain.param.MemberCardApi.UserMemberCardForRecharge;
+import com.taole.member.manager.CardInfoManager;
+import com.taole.member.manager.MemberCardManager;
+import com.taole.member.manager.OrderManager;
+import com.taole.member.manager.OrderServiceManager;
+import com.taole.member.manager.ShopInfoManager;
+import com.taole.member.manager.UserAttrManager;
+import com.taole.member.manager.UserBillManager;
+import com.taole.member.manager.UserManager;
+import com.taole.member.utils.RestClientUtil;
+import com.taole.member.utils.ReturnCodeDefine;
+import com.taole.member.utils.TokenUtil;
+import com.taole.member.utils.UserSwipingCardUtil;
+import com.taole.toolkit.dict.manager.DictionaryManager;
+import com.taole.toolkit.util.DateStyle;
+import com.taole.toolkit.util.DateUtil;
+import com.taole.toolkit.util.MathUtil;
+
+@Controller
+@Api(tags = { "客户端用户会员卡接口管理" })
+@RequestMapping(value = RestUrlRuler.REST_ROOT + "/" + ProjectConfig.PREFIX + "MemberCardApi")
+public class MemberCardApi {
+	
+	private Logger logger = LoggerFactory.getLogger(MemberCardApi.class);
+	
+	@Autowired
+	private UserManager userManager;
+	
+	@Autowired
+	private MemberCardManager memberCardManager;
+	
+	@Autowired
+	private CardInfoManager cardInfoManager;
+	
+	@Autowired
+	private UserBillManager userBillManager;
+	
+	@Autowired
+	private DictionaryManager dictionaryManager;
+	
+	@Autowired
+	private MemberConfig memberConfig;
+	
+	@Autowired
+	private UserAttrManager userAttrManager;
+	
+	@Autowired
+	private OrderManager orderManager;
+	
+	@Autowired
+	private OrderServiceManager orderServiceManager;
+	@Autowired
+	private ShopInfoManager shopInfoManager;
+
+	@RequestMapping(value = "/collection/userMemberCard", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "获取用户会员卡列表", httpMethod = "GET", response = UserMemberCard.MemberCardApiUserMemberCardRsp.class)
+	public @ResponseBody Object userMemberCard(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "用户ID", required = true) @RequestParam String userId){
+		
+		try {
+			
+			User user = userManager.getUser(userId);
+			if(user == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "用户信息不存在");
+			
+			JSONArray resultArray = memberCardManager.userMemberCard(userId);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "用户会员卡获取成功", resultArray);
+		} catch (Exception e) {
+			
+			logger.error(ProjectConfig.PREFIX + "MemberCardApi" + ".userMemberCard:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "用户会员卡获取失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/userMemberCardForRecharge", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "获取用户可充值会员卡列表", httpMethod = "GET", response = UserMemberCardForRecharge.MemberCardApiUserMemberCardForRechargeRsp.class)
+	public @ResponseBody Object userMemberCardForRecharge(HttpServletRequest request, HttpServletResponse response,
+			@ModelAttribute UserMemberCardForRecharge.MemberCardApiUserMemberCardForRechargeReq req){
+		
+		try {
+			
+			User user = userManager.getUser(req.getUserId());
+			if(user == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "用户信息不存在");
+			
+			ShopInfo shopInfo = shopInfoManager.getShopInfo(req.getShopId());
+			if(shopInfo == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "店铺信息不存在");
+			
+			JSONArray resultArray = memberCardManager.userMemberCardForRecharge(user.getId(), req.getShopId());
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "用户会员卡获取成功", resultArray);
+		} catch (Exception e) {
+			
+			logger.error(ProjectConfig.PREFIX + "MemberCardApi" + ".userMemberCard:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "用户会员卡获取失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/getToken", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "获取二维码token", httpMethod = "GET", response = GetToken.MemberCardApiGetTokenRsp.class)
+	public @ResponseBody Object getToken(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "用户会员卡ID", required = true) @RequestParam String userCardId){
+		
+		try {
+			MemberCard memberCard = memberCardManager.getMemberCard(userCardId);
+			if(memberCard == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "无法根据用户会员卡ID获取卡信息");
+			
+			JSONObject resultObj = new JSONObject();
+			String token = TokenUtil.genJWT(memberCard.getUserCardId(), "", "", 60L, "", "", null);
+			resultObj.put("token", token);
+			UserSwipingCardUtil.put(memberCard.getUserCardId(), token);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "token获取成功", resultObj);
+		} catch (Exception e) {
+			
+			logger.error(ProjectConfig.PREFIX + "MemberCardApi" + ".getToken:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "获取失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/saveUserInfo", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "维护会员信息", httpMethod = "POST", response = ServiceResult.class)
+	public @ResponseBody Object saveUserInfo(HttpServletRequest request, HttpServletResponse response,
+			@RequestBody SaveUserInfo.MemberCardApiSaveUserInfoReq req){
+		
+		try {
+			MemberCard memberCard = memberCardManager.getMemberCard(req.getMemberCardId());
+			if(memberCard == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "无法根据用户会员卡ID获取卡信息");
+			
+			memberCard.setUserName(req.getUserName());
+			memberCard.setUserAvatar(req.getUserAvatar());
+			if(StringUtils.isNotBlank(req.getUserGender()))
+				memberCard.setUserGender(Integer.parseInt(req.getUserGender()));
+			memberCard.setUserBirthday(DateUtil.StringToDate(req.getUserBirthDay(), DateStyle.YYYY_MM_DD));
+			
+			memberCardManager.updateMemberCard(memberCard);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "会员信息维护成功！");
+		} catch (Exception e) {
+			
+			logger.error(ProjectConfig.PREFIX + "MemberCardApi" + ".saveUserInfo:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "会员信息维护失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/memberCardInfo", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "获取用户会员卡详细信息", httpMethod = "GET", response = MemberCardInfo.MemberCardApiMemberCardInfoRsp.class)
+	public @ResponseBody Object memberCardInfo(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "用户会员卡ID", required = true) @RequestParam String userCardId){
+		
+		try {
+			
+			MemberCard memberCard = memberCardManager.getMemberCard(userCardId);
+			if(memberCard == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "无法根据用户会员卡ID获取卡信息");
+			
+			JSONObject resultObj = new JSONObject();
+			resultObj.put("userCardId", memberCard.getUserCardId());
+			resultObj.put("deadline", memberCard.getDeadline() != null ? DateUtil.DateToString(memberCard.getDeadline(), DateStyle.YYYY_MM_DD_CN) : "");
+			resultObj.put("status", memberCard.getStatus());
+			resultObj.put("statusName", dictionaryManager.getDictName(MemberCardStatus.DICTIONARY_MEMBERCARD_STATUS_CODE_ID, memberCard.getStatus()));
+			resultObj.put("image", StringUtils.isNotBlank(memberCard.getCardImage()) ? memberCard.getCardImage() : memberConfig.getDefaultImage());
+			
+			ShopInfo shopInfo = shopInfoManager.getShopInfo(memberCard.getOperatorShopId());
+			if(shopInfo != null)
+				resultObj.put("shopName", shopInfo.getName());
+			
+			CardInfo cardInfo = cardInfoManager.getCardInfo(memberCard.getCardId());
+			resultObj.put("cardName", cardInfo.getCardName());
+			resultObj.put("cardId", cardInfo.getCardId());
+			resultObj.put("cardType", cardInfo.getCardType());
+			resultObj.put("cardTypeName", dictionaryManager.getDictName(CardType.DICTIONARY_CARD_TYPE_CODE_ID, cardInfo.getCardType()));
+			
+			int blanceNum = 0;
+			if(memberCard.getStatus().equals(MemberCardStatus.T0_BE_OPEN)){
+				blanceNum = cardInfo.getTotalNum();
+			}else{
+				blanceNum = userBillManager.getBalanceNum(memberCard.getUserCardId());
+			}
+			resultObj.put("balanceNum", blanceNum);
+			
+			String userAvatar = memberCard.getUserAvatar();
+			resultObj.put("userAvatar", StringUtils.isNotBlank(userAvatar) ? userAvatar : memberConfig.getDefaultImage());
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "用户会员卡详细信息获取成功", resultObj);
+		} catch (Exception e) {
+			
+			logger.error(ProjectConfig.PREFIX + "MemberCardApi" + ".memberCardInfo:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "用户会员卡详细信息获取失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/recharge", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "用户会员卡充值", httpMethod = "POST", response = Recharge.MemberCardApiRechargeRsp.class)
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public @ResponseBody Object recharge(HttpServletRequest request, HttpServletResponse response,
+			@RequestBody Recharge.MemberCardApiRechargeReq req){
+		
+		try {
+			
+			if(StringUtils.isBlank(req.getShopId()))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "店铺ID不能为空");
+			
+			if(StringUtils.isBlank(req.getUserId()))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "用户ID不能为空");
+			
+			if(req.getMemberCards() == null || req.getMemberCards().size() == 0){
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "充值卡信息不能为空");
+			}
+			
+			User user = userManager.getUser(req.getUserId());
+			if(user == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "用户信息不存在");
+			
+			ShopInfo shopInfo = shopInfoManager.getShopInfo(req.getShopId());
+			if(shopInfo == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "店铺信息不存在");
+			
+			String openId = userAttrManager.getUserOpenId(req.getUserId());
+			if(StringUtils.isBlank(openId))
+				return new ServiceResult(Integer.valueOf(ReturnCodeDefine.NO_OPENID[0]), "用户没有绑定openId");
+			
+			String orderId = UUID.generateUUID();
+			
+			//创建订单商品信息
+			Double orderAmount = 0D;
+			Integer orderNum = req.getMemberCards().size();
+			for(RechargeMemberCard rmc : req.getMemberCards()){
+				OrderService orderService = new OrderService();
+				
+				CardInfo cardInfo = cardInfoManager.getCardInfo(rmc.getCardId());
+				orderService.setOrderId(orderId);
+				orderService.setServiceName(cardInfo.getCardName());
+				orderService.setServiceId(rmc.getUserCardId());
+				orderService.setMoney(cardInfo.getMoney());
+				orderService.setNum(1);
+				orderService.setDescription(cardInfo.getCardId());
+				orderServiceManager.createOrderService(orderService);
+				
+				orderAmount = MathUtil.add(orderAmount, cardInfo.getMoney());
+			}
+			
+			
+			//创建订单信息
+			Order order = orderManager.create(orderId, orderNum, orderAmount, 
+					req.getShopId(), req.getUserId(), OrderType.RECHARGE);
+			
+			//调用支付平台下单支付
+			String extraInfo = memberConfig.getMemberHost() + "/service/rest/member.Order/collection/orderCallback?orderId=" + orderId;
+			JSONObject createPayOrderResult = RestClientUtil.createPayOrder(openId, orderId, orderAmount, extraInfo);
+			order.setPayData(createPayOrderResult.toString());
+			orderManager.updateOrder(order);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "订单创建成功", createPayOrderResult);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "MemberCardApi" + ".query:{}", e);
+			throw new RuntimeException();
+		}
+	}
+	
+	@RequestMapping(value = "/collection/stop", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "停卡申请", httpMethod = "POST", response = ServiceResult.class)
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public @ResponseBody Object stop(HttpServletRequest request, HttpServletResponse response,
+			@RequestBody Apply.MemberCardApiApplyReq req){
+		
+		try {
+			if (StringUtils.isBlank(req.getContent())) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "停卡申请内容不能为空！");
+			}
+			
+			if (StringUtils.isBlank(req.getUserMobile())) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "停卡申请手机号不能为空！");
+			}
+			
+			MemberCard memberCard = memberCardManager.getMemberCard(req.getUserCardId());
+			if(memberCard == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "用户会员卡信息不存在，无法进行停卡申请！");
+			
+			if(!MemberCardStatus.ACTIVE.equals(memberCard.getStatus()))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "只有已激活的会员卡可申请停卡！");
+			
+			//检查该会员卡是否已经申请过停卡
+			if(RestClientUtil.isApply(req.getUserMobile(), memberCard.getCardNo()))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "每张会员卡只有一次停卡申请机会！");
+			
+			memberCard.setStatus(MemberCardStatus.MEMBER_CARD_STOP_AUDIT);
+			memberCardManager.updateMemberCard(memberCard);
+			
+			//添加停卡申请记录
+			String createApplyResult = RestClientUtil.createApply(req.getUserMobile(), req.getContent(), MemberCardApplyType.STOP_CARD);
+			if(!"success".equals(createApplyResult))
+				throw new RuntimeException(createApplyResult);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "停卡申请成功！");
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "MemberCardApi" + ".stop:{}", e);
+			throw new RuntimeException(e.getMessage());
+			//return new ServiceResult(ReturnResult.FAILURE, "停卡申请失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/recovery", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "恢复卡申请", httpMethod = "POST", response = ServiceResult.class)
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public @ResponseBody Object recovery(HttpServletRequest request, HttpServletResponse response,
+			@RequestBody Apply.MemberCardApiApplyReq req){
+		
+		try {
+			if (StringUtils.isBlank(req.getContent())) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "恢复卡申请内容不能为空！");
+			}
+			
+			if (StringUtils.isBlank(req.getUserMobile())) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "恢复卡申请手机号不能为空！");
+			}
+			
+			MemberCard memberCard = memberCardManager.getMemberCard(req.getUserCardId());
+			if(memberCard == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "用户会员卡信息不存在，无法进行恢复卡申请！");
+			
+			if(!MemberCardStatus.STOP.equals(memberCard.getStatus()))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "只有已停卡的会员卡可申请恢复卡！");
+			
+			memberCard.setStatus(MemberCardStatus.MEMBER_CARD_RECOVERY_AUDIT);
+			memberCardManager.updateMemberCard(memberCard);
+			
+			//添加恢复卡申请记录
+			String createApplyResult = RestClientUtil.createApply(req.getUserMobile(), req.getContent(), MemberCardApplyType.RECOVERY_CARD);
+			if(!"success".equals(createApplyResult))
+				throw new RuntimeException(createApplyResult);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "恢复卡申请成功！");
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "MemberCardApi" + ".recovery:{}", e);
+			throw new RuntimeException(e.getMessage());
+			//return new ServiceResult(ReturnResult.FAILURE, "停卡申请失败: " + e.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/collection/withdraw", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "退卡申请", httpMethod = "POST", response = ServiceResult.class)
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public @ResponseBody Object withdraw(HttpServletRequest request, HttpServletResponse response,
+			@RequestBody Apply.MemberCardApiApplyReq req){
+		
+		try {
+			if (StringUtils.isBlank(req.getContent())) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "退卡申请内容不能为空！");
+			}
+			
+			if (StringUtils.isBlank(req.getUserMobile())) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "退卡申请手机号不能为空！");
+			}
+			
+			MemberCard memberCard = memberCardManager.getMemberCard(req.getUserCardId());
+			if(memberCard == null)
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "用户会员卡信息不存在，无法进行退卡申请！");
+			
+			if(!MemberCardStatus.ACTIVE.equals(memberCard.getStatus()))
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "只有已激活的会员卡可申请退卡！");
+			
+			memberCard.setStatus(MemberCardStatus.MEMBER_CARD_WITHDRAW_AUDIT);
+			memberCardManager.updateMemberCard(memberCard);
+			
+			//添加退卡申请记录
+			String createApplyResult = RestClientUtil.createApply(req.getUserMobile(), req.getContent(), MemberCardApplyType.WITHDRAW_CARD);
+			if(!"success".equals(createApplyResult))
+				throw new RuntimeException(createApplyResult);
+			
+			return new ServiceResult(ReturnResult.SUCCESS, "退卡申请成功！");
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "MemberCardApi" + ".withdraw:{}", e);
+			throw new RuntimeException(e.getMessage());
+			//return new ServiceResult(ReturnResult.FAILURE, "停卡申请失败: " + e.getMessage());
+		}
+	}
+}

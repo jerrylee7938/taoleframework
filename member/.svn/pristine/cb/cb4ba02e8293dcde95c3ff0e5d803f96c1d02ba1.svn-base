@@ -1,0 +1,73 @@
+package com.taole.member.manager;
+
+import java.sql.SQLException;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.hibernate.HibernateException;
+import org.hibernate.SQLQuery;
+import org.hibernate.Session;
+import org.springframework.orm.hibernate3.HibernateCallback;
+import org.springframework.orm.hibernate3.support.HibernateDaoSupport;
+import org.springframework.stereotype.Component;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.framework.dao.DomainObjectDao;
+import com.taole.member.ProjectConfig;
+import com.taole.member.condition.ShopGoodsCondition;
+import com.taole.member.domain.ShopStoreSet;
+import com.taole.member.sql.CommonSql;
+import com.taole.member.sql.ShopGoodsSql;
+
+@Component
+public class ShopGoodsManager {
+
+	@Resource(name = ProjectConfig.PREFIX + "shopStoreSetDao")
+	DomainObjectDao<ShopStoreSet> shopStoreSetDao;
+	
+	public Integer shopGoodsCount(final ShopGoodsCondition condition){
+		List<?> list = ((HibernateDaoSupport) shopStoreSetDao).getHibernateTemplate().executeWithNativeSession(new HibernateCallback<List<?>>() {
+			@Override
+			public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+				String sql = ShopGoodsSql.shopGoodsList(condition);
+				sql = CommonSql.count(sql);
+				SQLQuery sqlQuery = session.createSQLQuery(sql);
+				List<?> list = sqlQuery.list();
+				return list;
+			}
+		});
+		return Integer.valueOf(list.get(0).toString());
+	}
+	
+	public JSONArray shopGoodsList(final ShopGoodsCondition condition, final int start, final int limit){
+		
+		List<?> shopGoodsList = ((HibernateDaoSupport) shopStoreSetDao).getHibernateTemplate().executeWithNativeSession(new HibernateCallback<List<?>>() {
+			@Override
+			public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+				String sql = ShopGoodsSql.shopGoodsList(condition);
+				SQLQuery sqlQuery = session.createSQLQuery(sql);
+				sqlQuery.setFirstResult(start);
+				sqlQuery.setMaxResults(limit);
+				List<?> list = sqlQuery.list();
+				return list;
+			}
+		});
+		
+		JSONArray resultAry = new JSONArray();
+		for(int i=0; i<shopGoodsList.size(); i++){
+			Object[] objs = (Object[]) shopGoodsList.get(i);
+			JSONObject object = new JSONObject();
+			object.put("goodsId", objs[0]);
+			object.put("goodsName", objs[1]);
+			object.put("money", objs[2]);
+			object.put("image", objs[3]);
+			object.put("description", objs[4]);
+			
+			resultAry.add(object);
+		}
+		
+		return resultAry;
+	}
+}

@@ -1,0 +1,318 @@
+package com.taole.member.domain;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Transient;
+
+import com.taole.framework.annotation.PrimaryKey;
+import com.taole.framework.bean.DomainObject;
+import com.taole.member.ProjectConfig;
+
+@Entity(name = ProjectConfig.PREFIX + "shopInfo")
+@Table(name = "SHOP_INFO")
+@org.hibernate.annotations.Entity(dynamicInsert = true, dynamicUpdate = true)
+public class ShopInfo implements DomainObject, Cloneable {
+
+	private static final long serialVersionUID = 6167023009582598644L;
+
+	/**
+	 * 店面ID
+	 */
+	@Id
+	@PrimaryKey
+	@Column(name = "SHOP_ID", unique = true, nullable = false)
+	private String shopId;
+
+	/**
+	 * 店面名称
+	 */
+	@Column(name = "NAME")
+	private String name;
+
+	/**
+	 * 省份
+	 */
+	@Column(name = "PROVINCE")
+	private String province;
+
+	/**
+	 * 地市
+	 */
+	@Column(name = "CITY")
+	private String city;
+
+	/**
+	 * 地址
+	 */
+	@Column(name = "ADDRESS")
+	private String address;
+
+	/**
+	 * 联系电话
+	 */
+	@Column(name = "CONTACT_TEL")
+	private String contactTel;
+
+	/**
+	 * 联系人
+	 */
+	@Column(name = "CONTACT_PERSON")
+	private String contactPerson;
+
+	/**
+	 * 备注
+	 */
+	@Column(name = "DESCRIPTION")
+	private String description;
+
+	/**
+	 * 创建时间
+	 */
+	@Column(name = "CREATE_TIME")
+	private Date createTime;
+
+	/**
+	 * 修改时间
+	 */
+	@Column(name = "UPDATE_TIME")
+	private Date updateTime;
+
+	/**
+	 * 状态
+	 */
+	@Column(name = "STATUS")
+	private String status;
+
+	/**
+	 * code
+	 */
+	@Column(name = "CODE")
+	private Integer code;
+	
+	/**
+	 * 店铺LOGO
+	 */
+	@Column(name = "SHOP_LOGO")
+	private String shopLogo;
+	
+	/**
+	 * 店铺列表图片
+	 */
+	@Column(name = "SHOP_LIST_IMAGE")
+	private String shopListImage;
+	/**
+	 * 店铺详情图片(大图)
+	 */
+	@Column(name = "SHOP_DESC_IMAGE")
+	private String shopDescImage;
+	/**
+	 * 店铺经度
+	 */
+	@Column(name = "LNG")
+	private Double lng;
+	/**
+	 * 店铺纬度
+	 */
+	@Column(name = "LAT")
+	private Double lat;
+	/**
+	 * 店铺介绍
+	 */
+	@Column(name = "INTRODUCE")
+	private String introduce;
+	/**
+	 * 排序字段
+	 */
+	@Column(name = "SORT")
+	private Integer sort;
+	
+	@Column(name = "OPEN_TIME")
+	private String openTime;
+	
+	@Column(name = "CLOSE_TIME")
+	private String closeTime;
+	
+
+	@Transient
+	private Double distance;
+
+	public String getShopId() {
+		return shopId;
+	}
+
+	public void setShopId(String shopId) {
+		this.shopId = shopId;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getProvince() {
+		return province;
+	}
+
+	public void setProvince(String province) {
+		this.province = province;
+	}
+
+	public String getCity() {
+		return city;
+	}
+
+	public void setCity(String city) {
+		this.city = city;
+	}
+
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
+	}
+
+	public String getContactTel() {
+		return contactTel;
+	}
+
+	public void setContactTel(String contactTel) {
+		this.contactTel = contactTel;
+	}
+
+	public String getContactPerson() {
+		return contactPerson;
+	}
+
+	public void setContactPerson(String contactPerson) {
+		this.contactPerson = contactPerson;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public Date getCreateTime() {
+		return createTime;
+	}
+
+	public void setCreateTime(Date createTime) {
+		this.createTime = createTime;
+	}
+
+	public Date getUpdateTime() {
+		return updateTime;
+	}
+
+	public void setUpdateTime(Date updateTime) {
+		this.updateTime = updateTime;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+	public Integer getCode() {
+		return code;
+	}
+
+	public void setCode(Integer code) {
+		this.code = code;
+	}
+
+	public String getShopLogo() {
+		return shopLogo;
+	}
+
+	public void setShopLogo(String shopLogo) {
+		this.shopLogo = shopLogo;
+	}
+
+	public String getShopListImage() {
+		return shopListImage;
+	}
+
+	public void setShopListImage(String shopListImage) {
+		this.shopListImage = shopListImage;
+	}
+
+
+	public String getShopDescImage() {
+		return shopDescImage;
+	}
+
+	public void setShopDescImage(String shopDescImage) {
+		this.shopDescImage = shopDescImage;
+	}
+
+	public Double getLng() {
+		return lng;
+	}
+
+	public void setLng(Double lng) {
+		this.lng = lng;
+	}
+
+	public Double getLat() {
+		return lat;
+	}
+
+	public void setLat(Double lat) {
+		this.lat = lat;
+	}
+
+	public String getIntroduce() {
+		return introduce;
+	}
+
+	public void setIntroduce(String introduce) {
+		this.introduce = introduce;
+	}
+
+	public Integer getSort() {
+		return sort;
+	}
+
+	public void setSort(Integer sort) {
+		this.sort = sort;
+	}
+
+	public String getOpenTime() {
+		return openTime;
+	}
+	public Double getDistance() {
+		return distance;
+	}
+	public void setOpenTime(String openTime) {
+		this.openTime = openTime;
+	}
+
+	public String getCloseTime() {
+		return closeTime;
+	}
+
+	public void setCloseTime(String closeTime) {
+		this.closeTime = closeTime;
+	}
+
+	public void setDistance(Double distance) {
+		this.distance = distance;
+	}
+	
+}

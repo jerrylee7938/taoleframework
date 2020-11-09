@@ -1,0 +1,460 @@
+package com.taole.member.service.rest;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+
+import java.util.Date;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.framework.annotation.ReturnCodeInfo;
+import com.taole.framework.dao.util.Range;
+import com.taole.framework.dao.util.Sorter;
+import com.taole.framework.rest.RestService;
+import com.taole.framework.rest.RestUrlRuler;
+import com.taole.framework.rest.ReturnResult;
+import com.taole.framework.service.ServiceResult;
+import com.taole.framework.util.BeanUpdater;
+import com.taole.framework.util.SerializableJSONTransformer;
+import com.taole.member.Constants.CardExpire;
+import com.taole.member.Constants.CardStatus;
+import com.taole.member.Constants.CardType;
+import com.taole.member.ProjectConfig;
+import com.taole.member.condition.CardInfoCondition;
+import com.taole.member.condition.MemberCardCondition;
+import com.taole.member.condition.ShopStoreSetCondition;
+import com.taole.member.domain.CardInfo;
+import com.taole.member.domain.MemberCard;
+import com.taole.member.domain.ShopStoreSet;
+import com.taole.member.domain.param.CardInfoService.Create;
+import com.taole.member.domain.param.CardInfoService.Delete;
+import com.taole.member.domain.param.CardInfoService.GenerateCardCode;
+import com.taole.member.domain.param.CardInfoService.OffSale;
+import com.taole.member.domain.param.CardInfoService.OnSale;
+import com.taole.member.domain.param.CardInfoService.Query;
+import com.taole.member.domain.param.CardInfoService.QueryCard4Shop;
+import com.taole.member.domain.param.CardInfoService.Update;
+import com.taole.member.manager.CardInfoManager;
+import com.taole.member.manager.MemberCardManager;
+import com.taole.member.manager.ShopStoreSetManager;
+import com.taole.toolkit.dict.manager.DictionaryManager;
+import com.taole.toolkit.util.IdUtils;
+
+@Api(tags = { "卡信息后台管理" })
+@RequestMapping(value = RestUrlRuler.REST_ROOT + "/" + ProjectConfig.PREFIX + "CardInfo")
+@Controller
+@RestService(name = ProjectConfig.PREFIX + "CardInfo")
+public class CardInfoService {
+	private Logger logger = LoggerFactory.getLogger(CardInfoService.class);
+
+	private final static String RETURN_CODE_URL = ProjectConfig.RETURN_CODE_PATH + "CardInfo_";
+
+	@Autowired
+	private CardInfoManager cardInfoManager;
+
+	@Autowired
+	private MemberCardManager memberCardManager;
+
+	@Autowired
+	private DictionaryManager dictionaryManager;
+
+	@Autowired
+	private ShopStoreSetManager shopStoreSetManager;
+
+	/**
+	 * 新增会员卡信息 w
+	 * 
+	 * @param request
+	 * @param createReq
+	 * @return
+	 */
+	@RequestMapping(value = "/collection/create", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "新增会员卡信息", httpMethod = "POST", response = Create.CardInfoServiceCreateResp.class, notes = "新增会员卡信息")
+	@ApiResponses(value = { @ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "create.html") })
+	@ReturnCodeInfo(value = "create")
+	public @ResponseBody Object create(HttpServletRequest request,
+			@RequestBody Create.CardInfoServiceCreateReq createReq) {
+		try {
+			CardInfo cardInfo = new CardInfo();
+			cardInfo.setCardName(createReq.getCardName());
+			cardInfo.setCode(createReq.getCode());
+			cardInfo.setCardType(createReq.getCardType());
+			cardInfo.setChargeType(createReq.getChargeType());
+			cardInfo.setTotalNum(createReq.getTotalNum());
+			cardInfo.setMoney(createReq.getMoney());
+			cardInfo.setStatus(createReq.getStatus());
+			cardInfo.setCardImage(createReq.getCardImage());
+			cardInfo.setImageBack(createReq.getImageBack());
+			if(StringUtils.isNotBlank(createReq.getOnlineShow()))
+				cardInfo.setOnlineShow(createReq.getOnlineShow());
+			if(StringUtils.isNotBlank(createReq.getOnlineRecharge()))
+				cardInfo.setOnlineRecharge(createReq.getOnlineRecharge());
+			if (createReq.getCardType().equals(CardType.TERM)
+					&& createReq.getChargeType().equals(CardExpire.MONTH_CARD)) {
+				cardInfo.setPeriodOfValidity(30);
+			}
+			if (createReq.getCardType().equals(CardType.TERM)
+					&& createReq.getChargeType().equals(CardExpire.SEASON_CARD)) {
+				cardInfo.setPeriodOfValidity(90);
+			}
+			if (createReq.getCardType().equals(CardType.TERM)
+					&& createReq.getChargeType().equals(CardExpire.HALFYEAR_CARD)) {
+				cardInfo.setPeriodOfValidity(180);
+			}
+			if (createReq.getCardType().equals(CardType.TERM)
+					&& createReq.getChargeType().equals(CardExpire.YEAR_CARD)) {
+				cardInfo.setPeriodOfValidity(365);
+			}
+			// ConvertUtil.BeanToBean(createReq, cardInfo);
+
+			if (createReq.getCardType().equals(CardType.TERM) & StringUtils.isBlank(createReq.getChargeType())) {
+				return new ServiceResult(ReturnResult.FAILURE, "期限卡必须选择有效期类型");
+			}
+
+			String cardId = cardInfoManager.createCardInfo(cardInfo);
+			JSONObject jsonObject = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(cardInfo);
+			jsonObject.put("cardId", cardId);
+			return new ServiceResult(ReturnResult.SUCCESS, "新增会员卡信息成功", jsonObject);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "CardInfoService" + ".create:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "新增会员卡信息失败: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * 删除会员卡基本信息
+	 * 
+	 * @param response
+	 * @param ids
+	 * @return
+	 */
+	@RequestMapping(value = "/collection/delete", method = RequestMethod.DELETE, produces = "application/json;")
+	@ApiOperation(value = "删除会员卡基本信息", httpMethod = "DELETE", response = Delete.CardInfoServiceDeleteResp.class, notes = "删除会员卡基本信息")
+	@ApiResponses(value = { @ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "delete.html") })
+	@ReturnCodeInfo(value = "delete")
+	public @ResponseBody Object delete(HttpServletResponse response,
+			@ApiParam(value = "卡ID，多个以“,”分隔", name = "ids", required = true) @RequestParam String ids) {
+		try {
+			if (StringUtils.isEmpty(ids)) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "卡Id不能为空");
+			}
+			ShopStoreSetCondition shopStoreSetCondition = new ShopStoreSetCondition();
+			shopStoreSetCondition.setObjectId(ids);
+			ShopStoreSet shopStoreSet = shopStoreSetManager.findByCondition(shopStoreSetCondition);
+			if (shopStoreSet != null)
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "无法删除，卡信息已设置！");
+
+			CardInfo cardInfo1 = cardInfoManager.getCardInfo(ids);
+			String cardName = cardInfo1.getCardName();
+			MemberCardCondition memberCardCondition = new MemberCardCondition();
+			memberCardCondition.setCardId(ids);
+			MemberCard memberCard = memberCardManager.findByCondition(memberCardCondition);
+			if (memberCard != null) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, cardName + "已经有会员办理，不可删除！");
+			}
+			String[] cardIds = ids.split(",");
+			for (String cardId : cardIds) {
+
+				CardInfo cardInfo = cardInfoManager.getCardInfo(cardId);
+				if (cardInfo != null) {
+					cardInfoManager.deleteCardInfo(cardInfo);
+					;
+				}
+			}
+			return new ServiceResult(ReturnResult.SUCCESS, "删除内容信息成功");
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "ContentService" + ".delete:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "删除内容信息失败: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * 修改会员卡信息
+	 * 
+	 * @param request
+	 * @param categoryIds
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping(value = "/{id}/update", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "修改会员卡信息", httpMethod = "POST", response = Update.CardInfoServiceUpdateResp.class, notes = "修改会员卡信息")
+	@ApiResponses(value = {
+			@ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "updateCategory.html") })
+	@ReturnCodeInfo(value = "update")
+	public @ResponseBody Object update(HttpServletRequest request,
+			@RequestBody Update.CardInfoServiceUpdateReq updateReq,
+			@ApiParam(required = true, name = "id", value = "内容id") @PathVariable String id) {
+		try {
+			CardInfo cardInfo = cardInfoManager.getCardInfo(id);
+			if (cardInfo == null)
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "卡信息不存在！");
+
+			if (StringUtils.isEmpty(id)) {
+				return new ServiceResult(ReturnResult.VALIDATION_ERROR, "卡id不能为空！");
+			}
+
+			CardInfoCondition cardInfoCondition = new CardInfoCondition();
+			cardInfoCondition.setCode(updateReq.getCode());
+			CardInfo card = cardInfoManager.findByCondition(cardInfoCondition);
+			if (null != card) {
+				if (!id.equals(card.getCardId())) {
+					return new ServiceResult(ReturnResult.VALIDATION_ERROR, "卡code已存在！");
+				}
+			}
+
+			BeanUpdater.updateObject(cardInfo, updateReq);
+			cardInfoManager.updateCardInfo(cardInfo);
+			JSONObject jsonObject = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(cardInfo);
+			return new ServiceResult(ReturnResult.SUCCESS, "修改会员卡信息成功", jsonObject);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "CardInfoService" + ".update:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "修改会员卡信息失败: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * 查询卡信息列表
+	 * 
+	 * @param request
+	 * @param response
+	 * @param start
+	 * @param limit
+	 * @param queryCondition
+	 * @return
+	 */
+	@RequestMapping(value = "/collection/query", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "查询卡信息列表", httpMethod = "GET", response = Query.CardInfoServiceQueryResp.class, notes = "查询卡信息列表")
+	@ApiResponses(value = { @ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "query.html") })
+	@ReturnCodeInfo(value = "query")
+	public @ResponseBody Object query(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "分页参数，开始行数从0开始", required = true, defaultValue = "0") @RequestParam int start,
+			@ApiParam(value = "分页参数，每页显示条数", required = true, defaultValue = "25") @RequestParam int limit,
+			@ModelAttribute Query.CardInfoServiceQueryReq queryCondition) {
+		try {
+			Range range = new Range(start, limit);
+
+			CardInfoCondition condition = new CardInfoCondition();
+			if (null != queryCondition.getCardName()) {
+				condition.setCardName(queryCondition.getCardName());
+			}
+			if (StringUtils.isNotEmpty(queryCondition.getCardType())) {
+				condition.setCardType(queryCondition.getCardType());
+			}
+			if (null != queryCondition.getChargeType()) {
+				condition.setChargeType(queryCondition.getChargeType());
+			}
+			// condition.setStatus(CardStatus.UN_EFFECTIVE);
+			JSONArray jsonArray = (JSONArray) cardInfoManager.searchToJson(condition, range,
+					new Sorter().desc("createTime"));
+
+			JSONObject jsonObject = new JSONObject();
+			jsonObject.put("items", jsonArray);
+			jsonObject.put("total", cardInfoManager.count(condition));
+			return new ServiceResult(ReturnResult.SUCCESS, "查询卡信息列表成功", jsonObject);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "ContentService" + ".query:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "查询卡信息列表失败: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * 查询卡信息列表
+	 * 
+	 * @param request
+	 * @param response
+	 * @param start
+	 * @param limit
+	 * @param queryCondition
+	 * @return
+	 */
+	@RequestMapping(value = "/collection/queryCard4Shop", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "查询店面可售卡信息列表", httpMethod = "GET", response = QueryCard4Shop.CardInfoServiceQueryCard4ShopResp.class, notes = "查询卡信息列表")
+	@ApiResponses(value = {
+			@ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "queryCard4Shop.html") })
+	@ReturnCodeInfo(value = "queryCard4Shop")
+	public @ResponseBody Object queryCard4Shop(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(value = "分页参数，开始行数从0开始", required = true, defaultValue = "0") @RequestParam int start,
+			@ApiParam(value = "分页参数，每页显示条数", required = true, defaultValue = "25") @RequestParam int limit,
+			@ModelAttribute QueryCard4Shop.CardInfoServiceQueryCard4ShopReq queryCondition) {
+		try {
+			Range range = new Range(start, limit);
+
+			if (StringUtils.isEmpty(queryCondition.getShopId())) {
+				return new ServiceResult(ReturnResult.FAILURE, "无法识别的店id！");
+			}
+			ShopStoreSetCondition setCondition = new ShopStoreSetCondition();
+			setCondition.setShopId(queryCondition.getShopId());
+			setCondition.setObjectType(queryCondition.getObjectType());
+			List<ShopStoreSet> list = shopStoreSetManager.list(setCondition);
+			String[] objIds = new String[list.size()];
+			for (int i = 0; i < list.size(); i++) {
+				objIds[i] = list.get(i).getObjectId();
+			}
+			CardInfoCondition condition = new CardInfoCondition();
+			if (null != objIds && objIds.length > 0) {
+				condition.setObjIds(objIds);
+				condition.setStatus(CardStatus.UN_EFFECTIVE);
+			}
+
+			JSONArray jsonArray = (JSONArray) cardInfoManager.searchToJson(condition, range,
+					new Sorter().desc("createTime"));
+
+			JSONObject jsonObject = new JSONObject();
+			jsonObject.put("items", jsonArray);
+			jsonObject.put("total", cardInfoManager.count(condition));
+			return new ServiceResult(ReturnResult.SUCCESS, "查询卡信息列表成功", jsonObject);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "ContentService" + ".query:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "查询卡信息列表失败: " + e.getMessage());
+		}
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/{id}/retrieve", method = RequestMethod.GET, produces = "application/json; charset=utf-8")
+	@ApiOperation(value = "获取卡信息详情", httpMethod = "GET", response = Query.CardInfoServiceQueryResp.class, notes = "获取卡信息详情")
+	@ApiResponses(value = { @ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "retrieve.html") })
+	@ReturnCodeInfo(value = "Retrieve")
+	public Object retrieve(HttpServletRequest request, HttpServletResponse response,
+			@ApiParam(required = true, name = "id", value = "卡id") @PathVariable String id) {
+
+		try {
+			CardInfo cardInfo = cardInfoManager.getCardInfo(id);
+			if (null == cardInfo) {
+				return new ServiceResult(ReturnResult.NOT_FOUND_OBJECT, "没有卡信息！");
+			}
+			JSONObject object = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(cardInfo);
+
+			return new ServiceResult(ReturnResult.SUCCESS, "获取卡信息成功", object);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "CardInfoService" + ".retrieve:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "获取医院消息失败", e.getMessage());
+		}
+	}
+
+	/**
+	 * 卡上架 w
+	 * 
+	 * @param request
+	 * @param createReq
+	 * @return
+	 */
+	@RequestMapping(value = "/collection/onSale", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "卡上架", httpMethod = "POST", response = OnSale.CardInfoServiceOnSaleResp.class, notes = "卡上架")
+	@ApiResponses(value = { @ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "onSale.html") })
+	@ReturnCodeInfo(value = "onSale")
+	public @ResponseBody Object onSale(HttpServletRequest request,
+			@ApiParam(required = true, name = "ids", value = "卡ID，多个以“,”分隔") @RequestParam String ids) {
+		String[] cardIds = ids.split(",");
+		try {
+			for (String cardId : cardIds) {
+				CardInfo cardInfo = cardInfoManager.getCardInfo(cardId);
+				if (cardInfo == null)
+					return new ServiceResult(ReturnResult.VALIDATION_ERROR, "卡信息不存在！");
+
+				if (StringUtils.isEmpty(ids)) {
+					return new ServiceResult(ReturnResult.VALIDATION_ERROR, "卡id不能为空！");
+				}
+
+				cardInfo.setStatus(CardStatus.EFFECTIVE);
+				cardInfo.setBeginTime(new Date());
+				cardInfoManager.updateCardInfo(cardInfo);
+				JSONObject obj = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(cardInfo);
+				obj.put("cardTypeName",
+						dictionaryManager.getDictName(CardType.DICTIONARY_CARD_TYPE_CODE_ID, cardInfo.getCardType()));
+				obj.put("cardStatusName",
+						dictionaryManager.getDictName(CardStatus.DICTIONARY_CARD_STATUS_CODE_ID, cardInfo.getStatus()));
+				obj.put("cardExpireName", dictionaryManager.getDictName(CardExpire.DICTIONARY_CARD_EXPIRE_CODE_ID,
+						cardInfo.getChargeType()));
+			}
+			return new ServiceResult(ReturnResult.SUCCESS, "卡上架成功");
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "CardInfoService" + ".onSale:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "卡上架失败: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * 卡下架 w
+	 * 
+	 * @param request
+	 * @param createReq
+	 * @return
+	 */
+	@RequestMapping(value = "/collection/offSale", method = RequestMethod.POST, produces = "application/json;")
+	@ApiOperation(value = "卡下架", httpMethod = "POST", response = OffSale.CardInfoServiceOffSaleResp.class, notes = "卡下架")
+	@ApiResponses(value = { @ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "onSale.html") })
+	@ReturnCodeInfo(value = "onSale")
+	public @ResponseBody Object offSale(HttpServletRequest request,
+			@ApiParam(required = true, name = "ids", value = "卡ID，多个以“,”分隔") @RequestParam String ids) {
+		String[] cardIds = ids.split(",");
+		try {
+			for (String cardId : cardIds) {
+				CardInfo cardInfo = cardInfoManager.getCardInfo(cardId);
+				if (cardInfo == null)
+					return new ServiceResult(ReturnResult.VALIDATION_ERROR, "卡信息不存在！");
+
+				if (StringUtils.isEmpty(ids)) {
+					return new ServiceResult(ReturnResult.VALIDATION_ERROR, "卡id不能为空！");
+				}
+				cardInfo.setStatus(CardStatus.UN_EFFECTIVE);
+				cardInfo.setEndTime(new Date());
+				cardInfoManager.updateCardInfo(cardInfo);
+				JSONObject obj = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(cardInfo);
+				obj.put("cardTypeName",
+						dictionaryManager.getDictName(CardType.DICTIONARY_CARD_TYPE_CODE_ID, cardInfo.getCardType()));
+				obj.put("cardStatusName",
+						dictionaryManager.getDictName(CardStatus.DICTIONARY_CARD_STATUS_CODE_ID, cardInfo.getStatus()));
+				obj.put("cardExpireName", dictionaryManager.getDictName(CardExpire.DICTIONARY_CARD_EXPIRE_CODE_ID,
+						cardInfo.getChargeType()));
+
+			}
+			return new ServiceResult(ReturnResult.SUCCESS, "卡下架成功");
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "CardInfoService" + ".offSale:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "卡下架失败: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * 生成卡编码
+	 * 
+	 * @param request
+	 * @param createReq
+	 * @return
+	 */
+	@RequestMapping(value = "/collection/generateCardCode", method = RequestMethod.GET, produces = "application/json;")
+	@ApiOperation(value = "生成卡编码", httpMethod = "GET", response = GenerateCardCode.CardInfoServiceGenerateCardCodeResp.class, notes = "生成卡编码")
+	@ApiResponses(value = {
+			@ApiResponse(code = 100, message = "点击链接查看具体返回码：" + RETURN_CODE_URL + "generateCardCode.html") })
+	@ReturnCodeInfo(value = "generateCardCode")
+	public @ResponseBody Object generateCardCode(HttpServletRequest request) {
+		try {
+			String code = IdUtils.generateId();
+			return new ServiceResult(ReturnResult.SUCCESS, "生成卡编码", code);
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "CardInfoService" + ".generateCardCode:{}", e);
+			return new ServiceResult(ReturnResult.FAILURE, "生成卡编码失败: " + e.getMessage());
+		}
+	}
+
+}

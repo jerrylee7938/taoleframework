@@ -1,0 +1,78 @@
+package com.taole.member.utils;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.member.ProjectConfig;
+import com.taole.member.config.CommonConfig;
+import com.taole.toolkit.util.HttpClientUtils;
+
+@Component
+public class RestClientUtil {
+	private static final Logger logger = LoggerFactory.getLogger(RestClientUtil.class);
+	
+	private static String CHARSET_DEFAULT_UTF8 = "UTF-8";
+	
+	@Autowired
+	private CommonConfig commonConfig;
+	
+	private static String portalDictRetrieveUrl;
+	private static String getUserInfoUrl;
+	
+	@PostConstruct
+	public void init() {
+		portalDictRetrieveUrl = commonConfig.getPortalDictRetrieve();
+		getUserInfoUrl = commonConfig.getGetUserInfoUrl();
+	}
+	
+	/**
+	 * 获取portal字段详情
+	 */
+	public static JSONObject getPortalDictRetrieve(String dictId) {
+		String url = String.format(portalDictRetrieveUrl, dictId);
+		logger.info(ProjectConfig.PREFIX + "getPortalDictRetrieve:{}", url);
+		try {
+			if (StringUtils.isNotEmpty(url)) {
+				
+				String result = HttpClientUtils.getInstance().httpGet(url);
+				
+				JSONObject dictObj = JSON.parseObject(result);
+				
+				return dictObj;
+			}
+		} catch (Exception e) {
+			logger.error(ProjectConfig.PREFIX + "properties:", e);
+		}
+		return null;
+	}
+	
+/**
+ * 获取操作人信息
+ * @param 
+ * @return
+ */
+public static JSONObject getUserInfo(String userId) {
+	String url = String.format(getUserInfoUrl, userId);
+	logger.info(ProjectConfig.PREFIX + "getOrderInfo:{}", url);
+
+	if (StringUtils.isNotEmpty(url)) {
+		try {
+			String result = HttpClientUtils.getInstance().httpGet(url);
+			JSONObject resultJo = JSON.parseObject(result);
+			if (1 == resultJo.getInteger("code")) {
+				return resultJo.getJSONObject("result");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	return null;
+}
+}	

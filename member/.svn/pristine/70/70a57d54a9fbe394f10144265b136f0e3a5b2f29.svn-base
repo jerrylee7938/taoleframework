@@ -1,0 +1,364 @@
+package com.taole.member.domain;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+import com.taole.framework.annotation.PrimaryKey;
+import com.taole.framework.bean.DomainObject;
+import com.taole.member.ProjectConfig;
+
+@Entity(name = ProjectConfig.PREFIX + "memberCard")
+@Table(name = "MEMBER_CARD")
+@org.hibernate.annotations.Entity(dynamicInsert = true, dynamicUpdate = true)
+public class MemberCard implements DomainObject, Cloneable {
+
+	private static final long serialVersionUID = -5778075075297897762L;
+
+	/**
+	 * 用户会员卡ID
+	 */
+	@Id
+	@PrimaryKey
+	@Column(name = "USER_CARD_ID", unique = true, nullable = false)
+	private String userCardId;
+
+	/**
+	 * 账户ID
+	 */
+	@Column(name = "USER_ID")
+	private String userId;
+
+	/**
+	 * 商品卡ID
+	 */
+	@Column(name = "CARD_ID")
+	private String cardId;
+
+	/**
+	 * 开卡单号
+	 */
+	@Column(name = "BIZ_NO")
+	private String bizNo;
+
+	/**
+	 * 卡号
+	 */
+	@Column(name = "CARD_NO")
+	private String cardNo;
+
+	/**
+	 * 卡密码
+	 */
+	@Column(name = "CARD_PWD")
+	private String cardPwd;
+
+	/**
+	 * 原始商品卡金额
+	 */
+	@Column(name = "MONEY")
+	private Double money;
+
+	/**
+	 * 原始商品卡次数
+	 */
+	@Column(name = "CARD_NUM")
+	private Integer cardNum;
+
+	/**
+	 * 经办人ID（portal user）
+	 */
+	@Column(name = "OPERATOR")
+	private String operator;
+
+	/**
+	 * 经办人所在店ID
+	 */
+	@Column(name = "OPERATOR_SHOP_ID")
+	private String operatorShopId;
+
+	/**
+	 * 经办人操作时间
+	 */
+	@Column(name = "operate_time")
+	private Date operateTime;
+
+	/**
+	 * 到期时间
+	 */
+	@Column(name = "DEADLINE")
+	private Date deadline;
+
+	/**
+	 * 开卡人ID（portal user）
+	 */
+	@Column(name = "APPROVER")
+	private Date approver;
+
+	/**
+	 * 开卡人所在店ID
+	 */
+	@Column(name = "APPROVER_SHOP_ID")
+	private String approverShopId;
+
+	/**
+	 * 审核通过时间
+	 */
+	@Column(name = "AUDIT_TIME")
+	private Date auditTime;
+	
+	/**
+	 * 审核人id
+	 */
+	@Column(name = "AUDITOR")
+	private Date auditor;
+	
+	/**
+	 * 开卡时间
+	 */
+	@Column(name = "APPROVER_TIME")
+	private Date approverTime;
+
+	/**
+	 * 状态
+	 */
+	@Column(name = "STATUS")
+	private String status;
+
+	/**
+	 * 备注
+	 */
+	@Column(name = "DESCRIPTION")
+	private String description;
+
+	/**
+	 * 创建时间
+	 */
+	@Column(name = "CREATE_TIME")
+	private Date createTime;
+
+	/**
+	 * 修改时间
+	 */
+	@Column(name = "UPDATE_TIME")
+	private Date updateTime;
+	
+	@Column(name = "CARD_IMAGE")
+	private String cardImage;
+
+	@Column(name = "USER_NAME")
+	private String userName;
+	
+	@Column(name = "USER_GENDER")
+	private Integer userGender;
+	
+	@Column(name = "USER_BIRTHDAY")
+	private Date userBirthday;
+
+
+	public String getCardImage() {
+		return cardImage;
+	}
+
+	public void setCardImage(String cardImage) {
+		this.cardImage = cardImage;
+	}
+
+	public String getUserCardId() {
+		return userCardId;
+	}
+
+	public void setUserCardId(String userCardId) {
+		this.userCardId = userCardId;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+
+	public String getCardId() {
+		return cardId;
+	}
+
+	public void setCardId(String cardId) {
+		this.cardId = cardId;
+	}
+
+	public String getBizNo() {
+		return bizNo;
+	}
+
+	public void setBizNo(String bizNo) {
+		this.bizNo = bizNo;
+	}
+
+	public String getCardNo() {
+		return cardNo;
+	}
+
+	public void setCardNo(String cardNo) {
+		this.cardNo = cardNo;
+	}
+
+	public String getCardPwd() {
+		return cardPwd;
+	}
+
+	public void setCardPwd(String cardPwd) {
+		this.cardPwd = cardPwd;
+	}
+
+
+	public Double getMoney() {
+		return money;
+	}
+
+	public void setMoney(Double money) {
+		this.money = money;
+	}
+
+	public Integer getCardNum() {
+		return cardNum;
+	}
+
+	public void setCardNum(Integer cardNum) {
+		this.cardNum = cardNum;
+	}
+
+	public String getOperator() {
+		return operator;
+	}
+
+	public void setOperator(String operator) {
+		this.operator = operator;
+	}
+
+	public String getOperatorShopId() {
+		return operatorShopId;
+	}
+
+	public void setOperatorShopId(String operatorShopId) {
+		this.operatorShopId = operatorShopId;
+	}
+
+
+	public Date getOperateTime() {
+		return operateTime;
+	}
+
+	public void setOperateTime(Date operateTime) {
+		this.operateTime = operateTime;
+	}
+
+	public Date getDeadline() {
+		return deadline;
+	}
+
+	public void setDeadline(Date deadline) {
+		this.deadline = deadline;
+	}
+
+	public Date getApprover() {
+		return approver;
+	}
+
+	public void setApprover(Date approver) {
+		this.approver = approver;
+	}
+
+	public String getApproverShopId() {
+		return approverShopId;
+	}
+
+	public void setApproverShopId(String approverShopId) {
+		this.approverShopId = approverShopId;
+	}
+
+	public Date getApproverTime() {
+		return approverTime;
+	}
+
+	public void setApproverTime(Date approverTime) {
+		this.approverTime = approverTime;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public Date getCreateTime() {
+		return createTime;
+	}
+
+	public void setCreateTime(Date createTime) {
+		this.createTime = createTime;
+	}
+
+	public Date getUpdateTime() {
+		return updateTime;
+	}
+
+	public void setUpdateTime(Date updateTime) {
+		this.updateTime = updateTime;
+	}
+
+	public Date getAuditTime() {
+		return auditTime;
+	}
+
+	public void setAuditTime(Date auditTime) {
+		this.auditTime = auditTime;
+	}
+
+	public Date getAuditor() {
+		return auditor;
+	}
+
+	public void setAuditor(Date auditor) {
+		this.auditor = auditor;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public Integer getUserGender() {
+		return userGender;
+	}
+
+	public void setUserGender(Integer userGender) {
+		this.userGender = userGender;
+	}
+
+	public Date getUserBirthday() {
+		return userBirthday;
+	}
+
+	public void setUserBirthday(Date userBirthday) {
+		this.userBirthday = userBirthday;
+	}
+}

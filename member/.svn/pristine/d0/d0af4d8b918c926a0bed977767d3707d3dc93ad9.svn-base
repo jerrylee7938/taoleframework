@@ -1,0 +1,701 @@
+/**
+ * Project:member
+ * File:memberCardManager.java 
+ * Copyright 2014-2016 Bei Jing Yi Sheng Jia Technology Development Co., Ltd. All rights reserved.
+ */
+package com.taole.member.manager;
+
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.time.DateUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.HibernateException;
+import org.hibernate.SQLQuery;
+import org.hibernate.Session;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.hibernate3.HibernateCallback;
+import org.springframework.orm.hibernate3.support.HibernateDaoSupport;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.taole.framework.annotation.DomainEngine;
+import com.taole.framework.dao.DomainObjectDao;
+import com.taole.framework.dao.util.PaginationSupport;
+import com.taole.framework.dao.util.Range;
+import com.taole.framework.dao.util.Sorter;
+import com.taole.framework.events.EventMethod;
+import com.taole.framework.util.SerializableJSONTransformer;
+import com.taole.framework.util.UUID;
+import com.taole.member.Constants;
+import com.taole.member.Constants.CardType;
+import com.taole.member.Constants.CustomerType;
+import com.taole.member.Constants.PayType;
+import com.taole.member.Constants.TransactionType;
+import com.taole.member.Constants.UnitType;
+import com.taole.member.Constants.UserBillApplyStatus;
+import com.taole.member.ProjectConfig;
+import com.taole.member.condition.CardInfoCondition;
+import com.taole.member.condition.GoodsBillDetailCondition;
+import com.taole.member.condition.UserBillCondition;
+import com.taole.member.domain.CardInfo;
+import com.taole.member.domain.GoodsBill;
+import com.taole.member.domain.GoodsBillDetail;
+import com.taole.member.domain.MemberCard;
+import com.taole.member.domain.ShopInfo;
+import com.taole.member.domain.User;
+import com.taole.member.domain.UserBill;
+import com.taole.member.domain.UserBillApply;
+import com.taole.member.sql.CommonSql;
+import com.taole.member.sql.UserBillApiSql;
+import com.taole.member.sql.UserBillDetailSql;
+import com.taole.member.sql.UserBillGoodsDetailSql;
+import com.taole.member.sql.UserBillSql;
+import com.taole.toolkit.dict.manager.DictionaryManager;
+import com.taole.toolkit.util.DateStyle;
+import com.taole.toolkit.util.DateUtil;
+
+/**
+ * @author Generator
+ * @version $Id$
+ */
+@DomainEngine(types = UserBill.class)
+@Transactional(readOnly = true)
+public class UserBillManager {
+
+	@Resource(name = ProjectConfig.PREFIX + "userBillDao")
+	DomainObjectDao<UserBill> userBillDao;
+
+	@Autowired
+	private DictionaryManager dictionaryManager;
+
+	@Autowired
+	private MemberCardManager memberCardManager;
+
+	@Autowired
+	private CardInfoManager cardInfoManager;
+
+	@Autowired
+	private ShopInfoManager shopInfoManager;
+
+	@Autowired
+	private GoodsInfoManager goodsInfoManager;
+
+	@Autowired
+	private GoodsBillManager goodsBillManager;
+
+	@Autowired
+	private GoodsBillDetailManager goodsBillDetailManager;
+	@Autowired
+	private UserManager userManager;
+
+	@Autowired
+	private UserBillApplyManager userBillApplyManager;
+
+	@DomainEngine.C
+	@EventMethod
+	@Transactional(readOnly = false, rollbackFor = Exception.class)
+	public String createUserBill(UserBill userBill) {
+		if (StringUtils.isBlank(userBill.getUserBillId()))
+			userBill.setUserBillId(UUID.generateUUID());
+
+		userBill.setCreateTime(new Date());
+		return userBillDao.createObject(userBill);
+	}
+
+	@DomainEngine.U
+	@EventMethod
+	@Transactional
+	public void updateUserBill(UserBill userBill) {
+		userBillDao.updateObject(userBill);
+	}
+
+	@DomainEngine.D
+	@EventMethod
+	@Transactional
+	public void deleteUserBill(UserBill userBill) {
+		userBillDao.deleteObject(userBill);
+	}
+
+	@DomainEngine.R
+	public UserBill getUserBill(String id) {
+		return userBillDao.loadObject(id);
+	}
+
+	public List<UserBill> list(UserBillCondition condition) {
+		return userBillDao.listByCondition(condition);
+	}
+
+	public List<UserBill> list(UserBillCondition condition, Sorter sorter) {
+		return userBillDao.listByCondition(condition, sorter);
+	}
+
+	public List<UserBill> list(UserBillCondition condition, Sorter sorter, int limit) {
+		return userBillDao.listByCondition(condition, sorter, limit);
+	}
+
+	public PaginationSupport<UserBill> search(UserBillCondition condition, Range range, Sorter sroter) {
+		return userBillDao.search(condition, range, sroter);
+	}
+
+	public int count(UserBillCondition condition) {
+		return userBillDao.countByCondition(condition);
+	}
+
+	public UserBill findByCondition(UserBillCondition condition) {
+		List<UserBill> list = userBillDao.listByCondition(condition, 1);
+		if (list.size() == 0) {
+			return null;
+		} else {
+			return list.get(0);
+		}
+	}
+
+	public Object searchToJson(UserBillCondition condition, Range range, Sorter sroter) {
+		PaginationSupport<UserBill> ps = search(condition, range, sroter);
+		JSONArray resultAry = new JSONArray();
+		for (UserBill userBill : ps.getItems()) {
+			JSONObject obj = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(userBill);
+
+			if (userBill.getUserId().equals(CustomerType.NOTMEMBER)) {
+				obj.put("userName", "散客");
+			}
+			if (StringUtils.isNotBlank(userBill.getUserCardId())) {
+
+				MemberCard memberCard = new MemberCard();
+				memberCard = memberCardManager.getMemberCard(userBill.getUserCardId());
+				obj.put("cardNO", memberCard.getCardNo());
+
+				User user = new User();
+				user = userManager.getUser(userBill.getUserId());
+				obj.put("userName", user.getName());
+			}
+
+			CardInfoCondition cardInfoCondition = new CardInfoCondition();
+			CardInfo cardInfo = new CardInfo();
+			cardInfo = cardInfoManager.findByCondition(cardInfoCondition);
+			obj.put("cardType", cardInfo.getCardType());
+			obj.put("cardTypeName",
+					dictionaryManager.getDictName(CardType.DICTIONARY_CARD_TYPE_CODE_ID, cardInfo.getCardType()));
+			obj.put("cationTypeName", dictionaryManager.getDictName(TransactionType.DICTIONARY_TRANSACTION_TYPE_CODE_ID,
+					userBill.getActionTypeId()));
+			obj.put("payTypeName",
+					dictionaryManager.getDictName(PayType.DICTIONARY_PAY_TYPE_CODE_ID, userBill.getPayType()));
+			// ShopInfo shopInfo = new ShopInfo();
+			if (StringUtils.isEmpty(userBill.getOperatorShopId())) {
+				obj.put("shopName", "未知");
+			} else {
+				ShopInfo shopInfo = shopInfoManager.getShopInfo(userBill.getOperatorShopId());
+				if (shopInfo == null) {
+					obj.put("shopName", userBill.getOperatorShopId());
+				} else {
+
+					obj.put("shopName", shopInfo.getName());
+				}
+			}
+
+			resultAry.add(obj);
+		}
+		return resultAry;
+	}
+
+	public JSONArray searchToJsonBySql(final UserBillCondition condition, final int start, final int limit) {
+		List<?> userBilList = ((HibernateDaoSupport) userBillDao).getHibernateTemplate()
+				.executeWithNativeSession(new HibernateCallback<List<?>>() {
+					@Override
+					public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+						String sql = UserBillDetailSql.getUserBillDetail(condition);
+						SQLQuery sqlQuery = session.createSQLQuery(sql);
+						sqlQuery.setFirstResult(start);
+						sqlQuery.setMaxResults(limit);
+						List<?> list = sqlQuery.list();
+						return list;
+					}
+				});
+
+		JSONArray resultAry = new JSONArray();
+		for (int i = 0; i < userBilList.size(); i++) {
+			Object[] objs = (Object[]) userBilList.get(i);
+
+			String userBillNo = (String) objs[1];
+			Date createTime = (Date) objs[3];
+			Integer swipeAmount = (Integer) objs[4];
+			Double consumeMoney = (Double) objs[5];
+			String actionTypeId = (String) objs[6];
+			String payType = (String) objs[7];
+			String operator = (String) objs[8];
+			String userId = (String) objs[9];
+			String shopId = (String) objs[10];
+			String userName = (String) objs[12];
+			String userCardId = (String) objs[13];
+			
+			//String cardType = (String) objs[17];
+			String userBillId = (String) objs[0];
+
+			JSONObject jsonObject = new JSONObject();
+
+			jsonObject.put("userBillNo", userBillNo);
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			String createTime1 = df.format(createTime);
+			jsonObject.put("createTime", createTime1);
+			jsonObject.put("swipeAmount", swipeAmount);
+			jsonObject.put("consumeMoney", consumeMoney);
+			jsonObject.put("actionTypeId", actionTypeId);
+			jsonObject.put("actionTypeName",
+					dictionaryManager.getDictName(TransactionType.DICTIONARY_TRANSACTION_TYPE_CODE_ID, actionTypeId));
+			jsonObject.put("payType", payType);
+			jsonObject.put("payTypeName", dictionaryManager.getDictName(PayType.DICTIONARY_PAY_TYPE_CODE_ID, payType));
+			jsonObject.put("operator", operator);
+			ShopInfo shopInfo = shopInfoManager.getShopInfo(shopId);
+			jsonObject.put("shopName", shopInfo.getName());
+			jsonObject.put("userId", userId);
+			jsonObject.put("userBillId", userBillId);
+			if (userId.equals(CustomerType.NOTMEMBER)) {
+				jsonObject.put("userName", "散客");
+				jsonObject.put("cardType", "");
+			} else {
+
+				jsonObject.put("userName", userName);
+			}
+			if(userCardId == null){
+				
+				jsonObject.put("cardNo", "");
+				jsonObject.put("cardType", "");
+			}else{
+				
+				MemberCard memberCard = memberCardManager.getMemberCard(userCardId);
+				if(memberCard == null){
+					jsonObject.put("cardNo", "");
+					jsonObject.put("cardType", "");
+				}else{
+					
+					CardInfo cardInfo = cardInfoManager.getCardInfo(memberCard.getCardId());
+					jsonObject.put("cardNo", memberCard.getCardNo());
+					if(StringUtils.isBlank(memberCard.getCardId())){
+						
+						jsonObject.put("cardType", "");
+					}
+					if(cardInfo == null){
+						jsonObject.put("cardType", "");
+						
+					}
+					jsonObject.put("cardType", dictionaryManager.getDictName(CardType.DICTIONARY_CARD_TYPE_CODE_ID, cardInfo.getCardType()));
+				}
+			}
+
+			resultAry.add(jsonObject);
+		}
+		return resultAry;
+	}
+
+	//查询流水明细商品信息
+	public JSONArray searchToJsonBySql4Goods(final UserBillCondition condition, final int start, final int limit) {
+		List<?> userBilList = ((HibernateDaoSupport) userBillDao).getHibernateTemplate()
+				.executeWithNativeSession(new HibernateCallback<List<?>>() {
+					@Override
+					public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+						String sql = UserBillGoodsDetailSql.getUserBillGoodsDetail(condition);
+						SQLQuery sqlQuery = session.createSQLQuery(sql);
+						sqlQuery.setFirstResult(start);
+						sqlQuery.setMaxResults(limit);
+						List<?> list = sqlQuery.list();
+						return list;
+					}
+				});
+
+		JSONArray resultAry = new JSONArray();
+		for (int i = 0; i < userBilList.size(); i++) {
+			Object[] objs = (Object[]) userBilList.get(i);
+
+			String userBillNo = (String) objs[0];
+			Date createTime = (Date) objs[1];
+			String shopName = (String) objs[2];
+			String userName = (String) objs[3];
+			String cardNo = (String) objs[4];
+			String goodsName = (String) objs[5];
+			Double saleMoney = (Double) objs[6];
+			Double amount = (Double) objs[7];
+			Double consumeMoney = (Double) objs[8];
+			String payType = (String) objs[9];
+			String operator = (String) objs[10];
+			String userId = (String) objs[11];
+			
+			JSONObject jsonObject = new JSONObject();
+
+			jsonObject.put("userBillNo", userBillNo);
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			String createTime1 = df.format(createTime);
+			jsonObject.put("createTime", createTime1);
+			jsonObject.put("shopName", shopName);
+			jsonObject.put("userName", userName);
+			jsonObject.put("cardNo", cardNo);
+			jsonObject.put("goodsName", goodsName);
+			jsonObject.put("saleMoney", saleMoney);
+			jsonObject.put("amount", amount);
+			jsonObject.put("goodsMoneyTotal", saleMoney*amount);
+			jsonObject.put("consumeMoney", consumeMoney);
+			jsonObject.put("payType", payType);
+			jsonObject.put("payTypeName", dictionaryManager.getDictName(PayType.DICTIONARY_PAY_TYPE_CODE_ID, payType));
+			jsonObject.put("operator", operator);
+			jsonObject.put("userId", userId);
+			if (userId.equals(CustomerType.NOTMEMBER)) {
+				jsonObject.put("userName", "散客");
+				jsonObject.put("cardType", "");
+			} else {
+
+				jsonObject.put("userName", userName);
+			}
+
+			resultAry.add(jsonObject);
+		}
+		return resultAry;
+	}
+	// 查询流水明细消费商品信息
+	public Object searchGoodsInfo(UserBillCondition condition, Range range, Sorter sroter) {
+		PaginationSupport<UserBill> ps = search(condition, range, sroter);
+		JSONArray resultAry = new JSONArray();
+		for (UserBill userBill : ps.getItems()) {
+			JSONObject obj = (JSONObject) SerializableJSONTransformer.transformPojo2Jso(userBill);
+			GoodsBillDetail goodsBillDetail = new GoodsBillDetail();
+			GoodsBillDetailCondition goodsBillDetailCondition = new GoodsBillDetailCondition();
+			goodsBillDetail = goodsBillDetailManager.findByCondition(goodsBillDetailCondition);
+			obj.put("prive", goodsBillDetail.getPrice());
+			obj.put("unit", goodsBillDetail.getUnit());
+			obj.put("amount", goodsBillDetail.getAmount());
+
+			obj.put("unitName",
+					dictionaryManager.getDictName(UnitType.DICTIONARY_UNIT_TYPE_CODE_ID, goodsBillDetail.getUnit()));
+
+			obj.put("cationTypeName", dictionaryManager.getDictName(TransactionType.DICTIONARY_TRANSACTION_TYPE_CODE_ID,
+					userBill.getActionTypeId()));
+			obj.put("payTypeName",
+					dictionaryManager.getDictName(PayType.DICTIONARY_PAY_TYPE_CODE_ID, userBill.getPayType()));
+			// obj.put("cardStatusName",
+			// dictionaryManager.getDictName(CardStatus.DICTIONARY_CARD_STATUS_CODE_ID,
+			// cardInfo.getStatus()));
+			// obj.put("cardExpireName",
+			// dictionaryManager.getDictName(CardExpire.DICTIONARY_CARD_EXPIRE_CODE_ID,
+			// cardInfo.getChargeType()));
+			resultAry.add(obj);
+		}
+		return resultAry;
+	}
+
+	public Integer searchUserBilCount(final UserBillCondition condition) throws Exception {
+		List<?> list = ((HibernateDaoSupport) userBillDao).getHibernateTemplate()
+				.executeWithNativeSession(new HibernateCallback<List<?>>() {
+					@Override
+					public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+						String sql = UserBillDetailSql.getUserBillDetail(condition);
+						sql = CommonSql.count(sql);
+						SQLQuery sqlQuery = session.createSQLQuery(sql);
+						List<?> list = sqlQuery.list();
+						return list;
+					}
+				});
+		return Integer.valueOf(list.get(0).toString());
+	}
+
+	/**
+	 * 获取用户卡剩余次数
+	 * 
+	 * @return
+	 */
+	public int getBalanceNum(String userCardId) {
+
+		// CardInfoCondition condition = new CardInfoCondition();
+		UserBillCondition condition = new UserBillCondition();
+		condition.setUserCardId(userCardId);
+		// condition.setUserId(userId);
+		List<UserBill> list = this.list(condition, new Sorter().desc("operateTime"), 1);
+		Integer balanceNum = 0;
+		if (list.size() > 0) {
+			UserBill userBill = list.get(0);
+			if (null != userBill && null != userBill.getBalanceNum()) {
+				balanceNum = userBill.getBalanceNum();
+			}
+		}
+		return balanceNum;
+	}
+
+	/**
+	 * 获取某张用户卡的已刷卡次数
+	 * 
+	 * @return
+	 */
+	public int getUsedCardNum(final String userCardId) {
+
+		List<?> list = ((HibernateDaoSupport) userBillDao).getHibernateTemplate()
+				.executeWithNativeSession(new HibernateCallback<List<?>>() {
+					@Override
+					public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+						String sql = UserBillSql.getConsumeNumForCard(userCardId);
+						SQLQuery sqlQuery = session.createSQLQuery(sql);
+						return sqlQuery.list();
+					}
+				});
+		if (list == null || list.size() == 0 || list.get(0) == null) {
+			return 0;
+		} else {
+			return Integer.valueOf(list.get(0).toString());
+		}
+	}
+
+	/**
+	 * 个人消费
+	 * 
+	 * @return
+	 */
+	@Transactional
+	public String consumeForIndividual(UserBill userbill, GoodsBill goodsBill, List<GoodsBillDetail> goodsList) {
+		// 处理出库单表（个人消费因为不刷卡，所以必须消费商品，所以肯定有出库单）
+		String goodsBillNo = userbill.getUserBillNo();
+		goodsBill.setShopBillNo(goodsBillNo);
+		String shopBillId = goodsBillManager.createGoodsBill(goodsBill);
+
+		// 处理出库商品表
+		for (GoodsBillDetail goodsBillDetail : goodsList) {
+
+			// 得到剩余库存量
+			Double balance = goodsBillDetailManager.getGoodsBalanceNum(goodsBillDetail.getShopId(),
+					goodsBillDetail.getGoodsId());
+			goodsBillDetail.setBalance(balance - goodsBillDetail.getAmount());
+			goodsBillDetail.setShopBillId(shopBillId);
+			goodsBillDetailManager.createGoodsBillDetail(goodsBillDetail);
+		}
+
+		userbill.setSwipeAmount(0);// 散客不划卡
+		userbill.setBalanceNum(0);// 散客剩余次数为0
+
+		// 处理用户交易流水表
+		userbill.setShopBillId(shopBillId);
+		// userbill.setUserBillNo(getUserBillNo(Constants.TransactionType.XF));
+		String userBillId = createUserBill(userbill);
+		return userBillId;
+	}
+
+	/**
+	 * 会员消费
+	 * 
+	 * @return
+	 */
+	@Transactional
+	public String consumeForMember(UserBill userbill, GoodsBill goodsBill, List<GoodsBillDetail> goodsList,
+			MemberCard memberCard) {
+		boolean isConsumeGoods = false;// 是否消费了商品
+		String shopBillId = "";
+		if (goodsBill == null || goodsList == null || goodsList.size() == 0) {
+			// 说明该会员没有消费任何商品
+		} else {
+			// 如果消费了商品，则维护出库单表以及出库商品信息
+			String goodsBillNo = userbill.getUserBillNo();
+			goodsBill.setShopBillNo(goodsBillNo);
+			shopBillId = goodsBillManager.createGoodsBill(goodsBill);
+			for (GoodsBillDetail goodsBillDetail : goodsList) {
+
+				// 得到剩余库存量
+				Double balance = goodsBillDetailManager.getGoodsBalanceNum(goodsBillDetail.getShopId(),
+						goodsBillDetail.getGoodsId());
+				goodsBillDetail.setBalance(balance - goodsBillDetail.getAmount());
+				goodsBillDetail.setShopBillId(shopBillId);
+				goodsBillDetailManager.createGoodsBillDetail(goodsBillDetail);
+			}
+			isConsumeGoods = true;// 表示消费了商品
+		}
+
+		// 处理会员卡过程
+		Integer swipeAmount = userbill.getSwipeAmount();// 本次消费的刷卡次数
+		if (swipeAmount != null && swipeAmount > 0) {// 说明本次操作存在刷卡行为
+			// 判断是否是第一次刷卡 boolean isFirstSwipe(MemberCard memberCard)
+			if (memberCardManager.isFirstSwipe(memberCard)) {
+				// 如果是第一次刷卡需要激活卡
+				memberCard.setStatus(Constants.MemberCardStatus.ACTIVE);
+				memberCard.setApproverTime(new Date());
+				memberCard.setDeadline(memberCardManager.getDeadDate(memberCard, null));
+				memberCardManager.updateMemberCard(memberCard);
+			}
+
+			// 重新计算剩余卡次数
+			userbill.setBalanceNum(getBalanceNum(userbill.getUserCardId()) - userbill.getSwipeAmount());
+		} else {
+			// 如果没刷卡，则剩余次数保持原先数量
+			userbill.setSwipeAmount(0);
+			userbill.setBalanceNum(getBalanceNum(userbill.getUserCardId()));
+		}
+
+		// 继续补充交易记录并处理
+		userbill.setShopBillId(shopBillId);
+		// if (isConsumeGoods) {
+		// userbill.setUserBillNo(getUserBillNo(Constants.TransactionType.XF));
+		// } else {
+		// userbill.setUserBillNo(getUserBillNo(Constants.TransactionType.HK));
+		// }
+		String userBillId = createUserBill(userbill);
+		return userBillId;
+	}
+
+	/**
+	 * 自动生成流水单号
+	 */
+	public String getUserBillNo(String prefix) {
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmssSSS");
+		Date date = new Date();
+		return prefix + sdf.format(date);
+	}
+
+	/**
+	 * 期限卡充值
+	 * 
+	 * @return
+	 */
+	@Transactional
+	public String chargeForQxCard(UserBill userBill, MemberCard memberCard, UserBillApply userBillApply,
+			Integer cardAmount) {
+		// 处理memberCard表（跟新有效时间）
+		// 更新截止时间
+		if (userBillApply.getStatus().equals(UserBillApplyStatus.AUDITPASS)) {
+			CardInfo cardInfo = cardInfoManager.getCardInfo(memberCard.getCardId());
+			if (cardInfo.getCardType().equals("QXK")) {
+				Date deadLine = memberCard.getDeadline();
+
+				if (cardInfo.getChargeType().equals("MONTHCARD")) {
+					memberCard.setDeadline(DateUtils.addMonths(deadLine, cardAmount));
+				} else if (cardInfo.getChargeType().equals("SEASONCARD")) {
+					memberCard.setDeadline(DateUtils.addMonths(deadLine, cardAmount * 3));
+				} else if (cardInfo.getChargeType().equals("HALFYEARCARD")) {
+					memberCard.setDeadline(DateUtils.addMonths(deadLine, cardAmount * 6));
+				} else if (cardInfo.getChargeType().equals("YEARCARD")) {
+					memberCard.setDeadline(DateUtils.addMonths(deadLine, cardAmount * 12));
+				}
+			}
+			memberCardManager.updateMemberCard(memberCard);
+
+			// 处理userBillApply表
+			userBillApplyManager.updateUserBillApply(userBillApply);
+
+			// 处理用户交易流水表
+
+			userBill.setUserId(memberCard.getUserId());
+			userBill.setBalanceNum(0);
+			String userBillId = createUserBill(userBill);
+			return userBillId;
+
+		}
+		return null;
+	}
+
+	/**
+	 * 计次卡充值
+	 * 
+	 * @return
+	 */
+	@Transactional
+	public String chargeJcCard(UserBill userBill, MemberCard memberCard, UserBillApply userBillApply,
+			Integer cardAmount) {
+		// 处理memberCard表（跟新有效时间）
+		if (userBillApply.getStatus().equals(UserBillApplyStatus.AUDITPASS)) {
+
+			CardInfo cardInfo = cardInfoManager.getCardInfo(memberCard.getCardId());
+			Date deadLine = memberCard.getDeadline();
+			Integer days = cardInfo.getPeriodOfValidity();
+			if (deadLine != null && days != null) {
+				memberCard.setDeadline(DateUtils.addDays(deadLine, days * cardAmount));
+				memberCardManager.updateMemberCard(memberCard);
+			}
+			// 处理userBillApply表
+			userBillApplyManager.updateUserBillApply(userBillApply);
+			// 处理用户交易流水表
+			userBill.setUserId(memberCard.getUserId());
+			// 计算卡剩余次数
+			Integer balanceNum = getBalanceNum(memberCard.getUserCardId());
+			userBill.setBalanceNum(balanceNum + userBillApply.getChargeNo());
+			String userBillId = createUserBill(userBill);
+			return userBillId;
+		}
+		return null;
+	}
+
+	/**
+	 * 获取日报表营业额
+	 * 
+	 * @return
+	 */
+	public double getTotalMoney(String statDate, String circleType, String shopId) {
+
+		UserBillCondition condition = new UserBillCondition();
+		if (circleType.equals("day")) {
+			condition.setOperatorShopId(shopId);
+			condition.setStartTime(DateUtil.StringToDate(statDate + " 00:00:00"));
+			condition.setEndTime(DateUtil.StringToDate(statDate + " 23:59:59"));
+		}else if (circleType.equals("month")){
+			Date firstDay = DateUtil.getFirstDayOfMonth(DateUtil.StringToDate(statDate));
+			Date lastDay = DateUtil.getLastDayOfMonth(DateUtil.StringToDate(statDate));
+			
+			String newFirstDay = DateUtil.DateToString(firstDay, DateStyle.YYYY_MM_DD);
+			String newLastDay = DateUtil.DateToString(lastDay, DateStyle.YYYY_MM_DD);
+			condition.setStartTime(DateUtil.StringToDate(newFirstDay +" 00:00:00"));
+			condition.setEndTime(DateUtil.StringToDate(newLastDay +" 23:59:59"));
+			condition.setOperatorShopId(shopId);
+		}
+		List<UserBill> list = this.list(condition, new Sorter().desc("operateTime"));
+		double totalNum = 0;
+		for (UserBill userBill : list) {
+			Double money = userBill.getConsumeMoney();
+			totalNum += money;
+		}
+		return totalNum;
+	}
+	
+	/**
+	 * 获取用户总支出金额
+	 * @param condition
+	 * @return
+	 */
+	public Double userBillPayCount(final UserBillCondition condition){
+		List<?> list = ((HibernateDaoSupport) userBillDao).getHibernateTemplate()
+				.executeWithNativeSession(new HibernateCallback<List<?>>() {
+					@Override
+					public List<?> doInHibernate(Session session) throws HibernateException, SQLException {
+						String sql = UserBillApiSql.userBillPayCount(condition);
+						SQLQuery sqlQuery = session.createSQLQuery(sql);
+						return sqlQuery.list();
+					}
+				});
+		if (list == null || list.size() == 0 || list.get(0) == null) {
+			return 0D;
+		} else {
+			return Double.valueOf(list.get(0).toString());
+		}
+	}
+	
+	/**
+	 * 获取用户流水记录(小程序)
+	 * @param condition
+	 * @param range
+	 * @param sorter
+	 * @return
+	 */
+	public JSONArray userBillList(UserBillCondition condition, Range range, Sorter sorter){
+		PaginationSupport<UserBill> ps = search(condition, range, sorter);
+		
+		JSONArray resultArray = new JSONArray();
+		for(UserBill ub : ps.getItems()){
+			JSONObject ubObject = new JSONObject();
+			ubObject.put("userBilId", ub.getUserBillId());
+			if(StringUtils.isNotBlank(ub.getOperatorShopId())){
+				ubObject.put("shopName", shopInfoManager.getShopInfo(ub.getOperatorShopId()).getName());
+			}
+			ubObject.put("money", ub.getConsumeMoney());
+			ubObject.put("time", DateUtil.DateToString(ub.getCreateTime(), DateStyle.MM_DD_HH_MM_CN));
+			ubObject.put("actionTypeId", ub.getActionTypeId());
+			resultArray.add(ubObject);
+		}
+		
+		return resultArray;
+	}
+}
