@@ -1,0 +1,14 @@
+
+filesystem.rootJndi=filesystem/root
+filesystem.tempDir=%{filesystem-root}/temp
+filesystem.storeDir=%{filesystem-root}/default
+filesystem.thumbDir=%{filesystem-root}/temp/thumb
+filesystem.watermarkDir=%{filesystem-root}/temp/watermark
+filesystem.docRoot=%{filesystem-root}/default
+filesystem.maxSize=300000
+
+#filesystem.restful.callback.html=data:tpl/freemarker; <html><script>alert('Operator <#if result == true>Success!<#else>Failed!</#if>');parent.location.reload();</script></html>
+filesystem.tpl.restful.baseddirectory.default=classpath:com/taole/toolkit/filesystem/template/restful-baseddirectory-default.tpl
+filesystem.tpl.restful.baseddirectory.view=classpath:com/taole/toolkit/filesystem/template/restful-baseddirectory-view.tpl
+
+pdf.js.viewer.url=/common/pdf.js/viewer.jsp

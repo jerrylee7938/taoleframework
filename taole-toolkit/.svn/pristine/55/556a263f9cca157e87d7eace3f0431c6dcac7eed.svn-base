@@ -1,0 +1,11 @@
+
+# Domain fields
+
+#Enum names
+com.taole.toolkit.category.domain.Category$Type.System=\u7CFB\u7EDF
+com.taole.toolkit.category.domain.Category$Type.Custom=\u81EA\u5B9A\u4E49
+
+
+com.taole.toolkit.category.domain.Category$Mode.Group=\u7EC4
+com.taole.toolkit.category.domain.Category$Mode.Set=\u96C6\u5408
+com.taole.toolkit.category.domain.Category$Mode.Element=\u5143\u7D20

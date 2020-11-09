@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+ <head> 
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" /> 
+  <meta content="PDF html Previewer" name="author" />
+  <title>${title}</title>
+  <style type="text/css">
+  html, body, p, div, h1, h2, h3, h4, h5, h6, img, pre, form, fieldset {
+  	 margin: 0; padding: 0; 
+  } 
+  img, fieldset { 
+  	border: 0; 
+  } 
+  body{background:#3e3e3e;}
+  .document {
+  	margin:20px auto; 
+  	text-align:center;
+  }
+  .document img{
+  	margin:10px 0; 
+  	border:5px solid #fff; 
+  	border-radius:4px; 
+  	-webkit-box-shadow:0 3px 6px rgba(0, 0, 0, 0.175); 
+  	box-shadow:0 3px 6px rgba(0, 0, 0, 0.175); 
+  	background-clip: padding-box;
+  }
+  .title { 
+  	margin-bottom:20px; 
+  	font-size:24px;
+  }
+  .btn{
+    background: #eee;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    *border: none;
+    color: #333;
+    display: inline-block;
+    *display: inline;
+    *zoom: 1;
+    padding: 4px 12px;
+    *padding: 4px;
+    margin: 0;
+    *margin-left: .3em;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.428571429;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    text-decoration:none;
+    font-size:12px;
+   }
+  .btn-error {
+  color: #ffffff;
+  background-color: #d9534f;
+  border-color: #d9534f;
+  }
+  .btn-error:hover,
+  .btn-error:focus,
+  .btn-error:active,
+  .btn-error.active{
+    color: #ffffff;
+    background-color: #d43f3a;
+    *background-color: #c9302c;
+  }
+ </style>
+</head>
+<body>
+	<div class="document">
+		<div class="title">
+			<h4>${title}</h4>
+		</div>
+		${pre}
+		${content}
+		${next}
+	</div>
+</body>
+</html>
